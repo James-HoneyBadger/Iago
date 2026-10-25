@@ -51,6 +51,7 @@ Pre-commit hooks (black, flake8, mypy and a few hygiene checks) are configured i
 | `pylint src/iago` | static analysis |
 | `python scripts/bench_search.py` | throughput and depth benchmarks |
 | `python scripts/selfplay.py --a 5 --b 4 --games 6` | strength validation |
+| `python scripts/stress_controller.py --seed 1` | randomised controller stress test |
 | `python scripts/build_book.py` | regenerate the opening book |
 | `python scripts/generate_screenshots.py` | regenerate `docs/images/` |
 | `python -m build` | build sdist + wheel |

@@ -131,6 +131,7 @@ dmypy.json
 # Game-specific runtime data (the game writes these to the user data dir)
 stats.json
 autosave.json
+.stress-data/
 saved_game.json
 settings.json
 config/reversi-settings.json

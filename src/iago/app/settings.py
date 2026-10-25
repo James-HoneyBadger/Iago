@@ -14,6 +14,7 @@ from ..core.constants import (
     PLAYER_WHITE,
     SUPPORTED_BOARD_SIZES,
 )
+from ..ui.layout import MAX_UI_SCALE, MIN_UI_SCALE
 from ..ui.theme import DEFAULT_THEME_KEY, THEMES
 
 CLOCK_MODES = ("off", "stopwatch", "blitz")
@@ -51,7 +52,11 @@ class GameSettings:
     # ------------------------------------------------------------------
 
     def validated(self) -> "GameSettings":
-        """Return a copy with every field forced into a legal range."""
+        """Force every field into its legal range and return ``self``.
+
+        Called on load and before every save, so a hand-edited file can never
+        leave the game in an impossible state.
+        """
 
         if self.theme not in THEMES:
             self.theme = DEFAULT_THEME_KEY
@@ -67,7 +72,7 @@ class GameSettings:
         self.sound_volume = max(0.0, min(1.0, float(self.sound_volume)))
         self.blitz_minutes = _clamp(self.blitz_minutes, 1, 60)
         self.blitz_increment = _clamp(self.blitz_increment, 0, 60)
-        self.ui_scale = max(0.75, min(2.0, float(self.ui_scale)))
+        self.ui_scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, float(self.ui_scale)))
         self.window_width = _clamp(self.window_width, 760, 2400)
         self.window_height = _clamp(self.window_height, 660, 1800)
         return self

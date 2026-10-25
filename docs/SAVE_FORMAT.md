@@ -1,8 +1,8 @@
 # Save format
 
 Everything Iago writes is JSON, versioned, validated and written atomically. Files live
-in the platform data directory (see the README); override with `--data-dir` or
-`IAGO_DATA_DIR`.
+in the platform data directory (see the README); `--data-dir PATH` and `IAGO_DATA_DIR`
+override the *base* directory, so files land in `PATH/iago/`.
 
 - [Files](#files)
 - [settings.json (schema 2)](#settingsjson-schema-2)
@@ -63,7 +63,8 @@ in the platform data directory (see the README); override with `--data-dir` or
 | `board_size` | int | `6`, `8`, `10` |
 | `ai_level` | int | `1`–`5` |
 | `clock_mode` | string | `off`, `stopwatch`, `blitz` |
-| `sound_volume`, `ui_scale` | float | clamped to their allowed ranges |
+| `sound_volume` | float | clamped to `0.0`–`1.0` |
+| `ui_scale` | float | clamped to `0.75`–`1.5` (the same range as the Appearance slider) |
 | `window_*` | int | clamped to `760×660` … `2400×1800` |
 
 Anything out of range is clamped and unknown keys are ignored, so a hand-edited file can
@@ -159,6 +160,11 @@ values and illegal moves all produce a typed error (`SaveFileError`, `SettingsEr
 documented fallback to defaults. Nothing raises a bare exception to the user, and nothing
 silently drops data that could be recovered.
 
-**Forward compatibility.** Readers check `schema` and dispatch to the right parser. A file
-with a schema newer than the running build is reported as unsupported rather than
-misinterpreted.
+**Forward compatibility.** Readers check `schema` and dispatch to the right parser. A save
+whose schema is newer than this build understands is rejected with an explanation rather
+than misinterpreted; settings and statistics are parsed permissively (unknown keys are
+dropped, missing keys defaulted), so downgrading costs you preferences, never your history.
+
+**No bare exceptions.** A hand-edited file with a missing key, a non-numeric value, a
+malformed block or an unsupported board size raises `SaveFileError` with a message naming
+the field or move — the game reports it as a toast and keeps running.

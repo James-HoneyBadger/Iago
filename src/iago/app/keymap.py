@@ -50,10 +50,11 @@ BINDINGS: Sequence[Binding] = (
     Binding((pg.K_s,), "save", "Save game", "S", modifiers=pg.KMOD_CTRL),
     Binding((pg.K_o,), "load", "Load game", "Ctrl+O", modifiers=pg.KMOD_CTRL),
     # Playing
-    Binding((pg.K_n, pg.K_r), "new_game", "New game", "N", PLAYING),
+    Binding((pg.K_n, pg.K_r), "new_game", "New game", "N / R", PLAYING),
     Binding((pg.K_u,), "undo", "Undo", "U", PLAYING),
     Binding((pg.K_y,), "redo", "Redo", "Y", PLAYING),
     Binding((pg.K_z,), "undo", "Undo", "Ctrl+Z", PLAYING, pg.KMOD_CTRL),
+    Binding((pg.K_y,), "redo", "Redo", "Ctrl+Y", PLAYING, pg.KMOD_CTRL),
     Binding(
         (pg.K_z,), "redo", "Redo", "Ctrl+Shift+Z", PLAYING, pg.KMOD_CTRL | pg.KMOD_SHIFT
     ),
@@ -66,12 +67,12 @@ BINDINGS: Sequence[Binding] = (
     Binding((pg.K_v,), "toggle_sound", "Mute / unmute", "V", PLAYING),
     Binding((pg.K_s,), "save", "Save game", "S", PLAYING),
     Binding((pg.K_l,), "load", "Load game", "L", PLAYING),
-    Binding((pg.K_a,), "analyse", "Analyse finished game", "A", PLAYING),
+    Binding((pg.K_a,), "analyse", "Analyse the game", "A", PLAYING),
     Binding(
         (pg.K_1, pg.K_2, pg.K_3, pg.K_4, pg.K_5),
         "set_level",
-        "Set difficulty 1-5",
-        "1-5",
+        "Set difficulty 1–5",
+        "1–5",
         PLAYING,
     ),
     Binding((pg.K_p,), "pause", "Pause AI vs AI", "P", AI_VS_AI),

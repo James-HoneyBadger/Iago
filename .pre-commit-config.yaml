@@ -23,6 +23,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: layering
+        name: layering rules
+        entry: python scripts/check_imports.py
+        language: system
+        pass_filenames: false
+        types: [python]
+
       - id: mypy
         name: mypy
         entry: mypy src/iago

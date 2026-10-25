@@ -166,3 +166,12 @@ def test_review_worker_cancel_is_safe():
     worker.start(played_game(40), depth=3)
     worker.cancel()
     assert not worker.busy
+
+
+def test_review_depth_is_shared_and_documented():
+    from iago.app import analysis
+
+    assert analysis.REVIEW_DEPTH >= 3
+    assert analysis.GameReview().engine_depth == analysis.REVIEW_DEPTH
+    review = analysis.analyse_moves([], depth=analysis.REVIEW_DEPTH)
+    assert review.engine_depth == analysis.REVIEW_DEPTH

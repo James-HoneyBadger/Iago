@@ -36,12 +36,19 @@ Iago is a four-layer application with a hard rule: **dependencies point downward
 
 - `core` imports nothing from the project except `util`.
 - `ai` imports `core` only.
-- `ui` imports `core` and small value objects from `app` (settings, session records,
-  analysis results) but never the controller.
+- `ui` imports `core`, `ai` (for `SearchResult`, level names and evaluation helpers) and
+  pure value objects from `app` (`session.MoveRecord`, `settings.GameSettings`,
+  `analysis.GameReview`, `achievements.Achievement`, `keymap.BINDINGS`) but never the
+  controller or the paths layer.
 - `app` imports everything; `renderer` never imports `app.game`, so there is no cycle.
 
 The one deliberate exception is `app.game` → `ui.renderer`, which is the composition
 root.
+
+The rules are executable: `python scripts/check_imports.py` walks the AST of every module,
+prints the cross-layer edges and fails on an upward dependency outside the documented
+`ui → app` value-object exception. `tests/test_layering.py` drives the same checker, and CI
+runs it before packaging.
 
 ---
 
@@ -161,6 +168,20 @@ A second worker (`hint_worker`) serves on-demand hints, and `ReviewWorker` analy
 finished game. Both use their own `Searcher` instances, so they never contend for the
 engine's table.
 
+Two rules keep asynchronous results honest:
+
+1. **A cancelled worker publishes nothing.** `SearchWorker.cancel()` sets the flag, joins
+   the thread for up to 0.5 s and clears any pending result, so a search abandoned by
+   undo, new game or a board-size change can never be applied afterwards.
+2. **A result is only applied to the position it was started for.** The controller records
+   `_position_key() == (size, zobrist)` when it starts a search or a hint and re-checks it
+   before applying the answer; a mismatch is logged at debug level and dropped.
+
+`Session.revision` provides the same protection for *synchronous* caches: it increments on
+every mutation (move, undo, redo, reset, load), and the review board cache keys on it, so
+stepping through a 60-move review replays the move list once per position instead of once
+per frame.
+
 ---
 
 ## Rendering pipeline
@@ -212,11 +233,13 @@ which reads as a real 3-D flip.
 `Layout`:
 
 1. Clamp the window to `MIN_WINDOW`…`MAX_WINDOW`.
-2. Reserve the menu bar (`46 px`), status panel (`132 px`), gutters (`16 px`) and the
+2. Clamp `ui_scale` to `MIN_UI_SCALE`…`MAX_UI_SCALE` (0.75–1.5, shared with the settings
+   validation and the Appearance slider).
+3. Reserve the menu bar (`46 px`), status panel (`132 px`), gutters (`16 px`) and the
    frame (`10 px`), all multiplied by the UI scale.
-3. Show the sidebar only when the window is at least `1024 px` wide (scaled).
-4. `cell = clamp(min(available_w, available_h) // board_size, 26, 96)`.
-5. Centre the framed board in the remaining space; the sidebar takes the rest.
+4. Show the sidebar only when the window is at least `1024 px` wide (scaled).
+5. `cell = clamp(min(available_w, available_h) // board_size, 26, 96)`.
+6. Centre the framed board in the remaining space; the sidebar takes the rest.
 
 Because the function is pure, the tests assert invariants for window sizes from 760×660
 to 2400×1800 across 6×6, 8×8 and 10×10 boards, and `Layout.hit_cell` round-trips
@@ -232,7 +255,10 @@ validated:
 
 * settings and statistics are coerced into range, unknown keys ignored;
 * saved games are **replayed against the real rules** — an illegal move in the file is
-  rejected with the offending move named.
+  rejected with the offending move named;
+* every field of a save is parsed defensively: a missing key, a non-numeric value, a
+  malformed block or an unsupported board size raises `SaveFileError` with a message that
+  names the problem, never a bare `KeyError`/`ValueError`.
 
 Legacy files are migrated on first read (see [SAVE_FORMAT.md](SAVE_FORMAT.md)).
 
@@ -240,9 +266,11 @@ Legacy files are migrated on first read (see [SAVE_FORMAT.md](SAVE_FORMAT.md)).
 
 ## Error handling and logging
 
-* Every deliberate failure raises a subclass of `IagoError` (`BoardError`,
-  `IllegalMoveError`, `AIError`, `SaveFileError`, …). The controller catches
-  `IagoError`, shows a toast and logs it; programming errors are not swallowed.
+* Every deliberate failure raises a subclass of `IagoError`: `BoardError` (with
+  `IllegalMoveError`), `PersistenceError` (with `SaveFileError` and `SettingsError`). The
+  controller catches `IagoError`, shows a toast and logs it; programming errors are not
+  swallowed. The search has its own private `SearchTimeout`, which never escapes the
+  engine.
 * Logging is configured once from the CLI: console at INFO (or DEBUG with `--verbose`)
   and a rotating file handler in the data directory.
 * Background threads log unexpected exceptions with a traceback and degrade gracefully
@@ -252,7 +280,7 @@ Legacy files are migrated on first read (see [SAVE_FORMAT.md](SAVE_FORMAT.md)).
 
 ## Testing strategy
 
-399 tests, all headless (`SDL_VIDEODRIVER=dummy`), run in ~25 s and cover 90% of statements.
+414 tests, all headless (`SDL_VIDEODRIVER=dummy`), run in ~25 s and cover 91 % of statements.
 
 | Area | Approach |
 |---|---|
@@ -263,4 +291,6 @@ Legacy files are migrated on first read (see [SAVE_FORMAT.md](SAVE_FORMAT.md)).
 | Persistence | Round-trips, corrupt files, legacy migration, atomicity |
 | UI | Layout invariants, theme completeness, widget geometry, easing bounds |
 | Rendering | Every theme × board size × overlay rendered headlessly; hit targets verified |
+| Architecture | `scripts/check_imports.py` asserts the layering rules |
+| CLI and paths | Parser defaults, every flag, platform data-directory resolution | |
 | Controller | Scripted games: human move → engine reply, paired undo, save/load, clock flag, review selection |

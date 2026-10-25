@@ -17,14 +17,6 @@ class IllegalMoveError(BoardError):
     """Raised when a move is not legal for the specified player."""
 
 
-class AIError(IagoError):
-    """Raised when the engine cannot produce a move."""
-
-
-class SearchCancelled(AIError):
-    """Raised internally when an in-flight search is abandoned."""
-
-
 class PersistenceError(IagoError):
     """Base class for storage problems."""
 
@@ -37,23 +29,11 @@ class SettingsError(PersistenceError):
     """Raised when settings cannot be read or validated."""
 
 
-class AssetError(IagoError):
-    """Raised when a font, texture or other asset cannot be prepared."""
-
-
-class AudioError(IagoError):
-    """Raised when the audio subsystem is unavailable."""
-
-
 __all__ = [
-    "IagoError",
     "BoardError",
+    "IagoError",
     "IllegalMoveError",
-    "AIError",
-    "SearchCancelled",
     "PersistenceError",
     "SaveFileError",
     "SettingsError",
-    "AssetError",
-    "AudioError",
 ]

@@ -18,21 +18,22 @@ from ..branding import APP_NAME, VERSION
 from ..core.constants import (
     MODE_AVA,
     MODE_HVAI,
+    MODE_LABELS,
     MODES,
     PLAYER_BLACK,
     PLAYER_WHITE,
     SUPPORTED_BOARD_SIZES,
 )
-from ..core.notation import identify_opening
+from ..core.notation import identify_opening, move_name
 from ..util.errors import IagoError, SaveFileError
 from ..util.log import get_logger
-from ..ui.layout import compute_layout
+from ..ui.layout import MAX_UI_SCALE, MIN_UI_SCALE, compute_layout
 from ..ui.overlays import GameOverData, OptionsData, ResumeData
 from ..ui.renderer import RenderModel, Renderer
 from ..ui.theme import get_theme, next_theme
 from . import paths, persistence
 from .achievements import GameSummary, evaluate as evaluate_achievements
-from .analysis import GameReview, ReviewWorker
+from .analysis import REVIEW_DEPTH, GameReview, ReviewWorker
 from .audio import SoundBank
 from .keymap import AI_VS_AI, PLAYING, REPLAY, lookup
 from .session import Session
@@ -41,7 +42,6 @@ from .settings import GameSettings
 logger = get_logger("app.game")
 
 AUTOSAVE_EVERY = 10
-REVIEW_DEPTH = 4
 AVA_DELAYS = (0.05, 0.18, 0.45, 0.9)
 
 
@@ -123,6 +123,7 @@ class Game:
         self.review: Optional[GameReview] = None
         self.new_achievements: List[str] = []
         self.replay_active = False
+        self._replay_timer = 0.0
         self.paused = False
         self.ava_speed = 2
         self.sidebar_scroll = 0
@@ -188,7 +189,7 @@ class Game:
         self.overlay = "resume"
         self.overlay_data = ResumeData(
             move_count=saved.move_count,
-            mode=MODE_LABELS_FALLBACK.get(saved.mode, saved.mode),
+            mode=MODE_LABELS.get(saved.mode, saved.mode),
             level=get_level(saved.level).name,
             played_at=saved.saved_at.replace("T", " ")[:16],
         )
@@ -600,15 +601,15 @@ class Game:
             return
         if self.selected_ply is None:
             self.selected_ply = 0
-        self._replay_timer = getattr(self, "_replay_timer", 0.0) + dt
+        self._replay_timer += dt
         delay = 0.55
         if self._replay_timer >= delay:
             self._replay_timer = 0.0
             self._step_review(1)
 
-    def _end_game(self) -> None:
+    def _end_game(self, *, record_stats: bool = True) -> None:
         self.replay_active = False
-        if self.session.mode == MODE_HVAI:
+        if record_stats and self.session.mode == MODE_HVAI:
             self._record_stats()
         duration = self.session.elapsed()
         self.review = None
@@ -702,6 +703,7 @@ class Game:
         self.review = None
         self.new_achievements = []
         self.replay_active = False
+        self._replay_timer = 0.0
         self.game_over_reason = "board"
         self.message = ""
         self._invalidate_review()
@@ -808,9 +810,7 @@ class Game:
             return
         self.settings.mode = mode
         self._save_settings()
-        self.renderer.notify(
-            f"Mode: {MODE_LABELS_FALLBACK.get(mode, mode)}", self.theme.accent
-        )
+        self.renderer.notify(f"Mode: {MODE_LABELS.get(mode, mode)}", self.theme.accent)
         self._new_game()
 
     def _set_player_color(self, color: int) -> None:
@@ -886,7 +886,9 @@ class Game:
         else:
             if value is not None:
                 self.settings.ui_scale = float(value)
-            self.settings.ui_scale = max(0.75, min(1.5, self.settings.ui_scale))
+            self.settings.ui_scale = max(
+                MIN_UI_SCALE, min(MAX_UI_SCALE, self.settings.ui_scale)
+            )
             self.renderer.set_ui_scale(self.settings.ui_scale)
         self._save_settings()
         self._refresh_options()
@@ -901,7 +903,9 @@ class Game:
             self.settings.sound_volume = fraction
             self.sound.set_volume(fraction)
         elif self.dragging == "scale":
-            self.settings.ui_scale = 0.75 + fraction * 0.75
+            self.settings.ui_scale = MIN_UI_SCALE + fraction * (
+                MAX_UI_SCALE - MIN_UI_SCALE
+            )
             self.renderer.set_ui_scale(self.settings.ui_scale)
 
     def _slider_target(self, kind: Optional[str]):
@@ -1128,6 +1132,12 @@ class Game:
         self.replay_active = False
         self._sync_scores()
         self.session.clock.start(self.session.current_player, time.monotonic())
+        if self.session.game_over:
+            # A finished save has no moves left to make: show the result panel
+            # (and start the review) instead of an inert board.  The result was
+            # already counted when the game ended, so do not record it again.
+            self._end_game(record_stats=False)
+            return
         self._maybe_start_ai()
 
     def _resume_game(self) -> None:
@@ -1198,8 +1208,6 @@ class Game:
         return self.engine.opening_name() or self.engine2.opening_name()
 
     def _notation(self, cell: Tuple[int, int]) -> str:
-        from ..core.notation import move_name
-
         return move_name(cell[0], cell[1])
 
     def _warn(self, text: str) -> None:
@@ -1214,10 +1222,11 @@ class Game:
         return position.size, position.zobrist
 
     def _update_caption(self) -> None:
-        state = f"{MODE_LABELS_FALLBACK.get(self.session.mode, self.session.mode)}"
-        level = f" · {get_level(self.session.level).name}"
-        theme = f" · {self.theme.name}"
-        pg.display.set_caption(f"{APP_NAME} {VERSION} — {state}{level}{theme}")
+        mode = MODE_LABELS.get(self.session.mode, self.session.mode)
+        level = get_level(self.session.level).name
+        pg.display.set_caption(
+            f"{APP_NAME} {VERSION} — {mode} · {level} · {self.theme.name}"
+        )
 
     def _invalidate_review(self) -> None:
         self._review_cache = None
@@ -1239,13 +1248,6 @@ class Game:
         self.sound.shutdown()
         pg.quit()
         logger.info("Shut down cleanly")
-
-
-MODE_LABELS_FALLBACK = {
-    "hvai": "Human vs AI",
-    "hvh": "2-Player",
-    "ava": "AI vs AI",
-}
 
 
 __all__ = ["Game", "LaunchOptions"]

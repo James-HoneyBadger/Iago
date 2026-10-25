@@ -270,3 +270,12 @@ def test_is_full_detects_filled_board():
     assert not board.is_full()
     board.grid = [[PLAYER_BLACK] * 8 for _ in range(8)]
     assert board.is_full()
+
+
+def test_make_move_switches_to_the_opponent_of_the_mover():
+    """Replay paths must not depend on the board's own idea of the turn."""
+
+    board = Board()
+    board.current_player = PLAYER_WHITE
+    assert board.make_move(2, 3, PLAYER_BLACK)
+    assert board.current_player == PLAYER_WHITE

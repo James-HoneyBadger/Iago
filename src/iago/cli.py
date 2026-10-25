@@ -16,6 +16,7 @@ from .app.game import Game, LaunchOptions
 from .app.keymap import BINDINGS
 from .branding import APP_NAME, APP_TAGLINE, VERSION
 from .core.constants import DEFAULT_BOARD_SIZE, MODES, SUPPORTED_BOARD_SIZES
+from .ui.layout import MAX_UI_SCALE, MIN_UI_SCALE
 from .ui.theme import THEME_ORDER, THEMES
 from .util.errors import IagoError
 from .util.log import configure as configure_logging
@@ -54,7 +55,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--fullscreen", action="store_true", help="start fullscreen")
     parser.add_argument("--windowed", action="store_true", help="force windowed mode")
-    parser.add_argument("--scale", type=float, help="interface scale, 0.75 to 1.5")
+    parser.add_argument(
+        "--scale",
+        type=float,
+        help=f"interface scale, {MIN_UI_SCALE:g} to {MAX_UI_SCALE:g}",
+    )
     parser.add_argument("--sound", dest="sound", action="store_true", default=None)
     parser.add_argument("--no-sound", dest="sound", action="store_false")
     parser.add_argument(

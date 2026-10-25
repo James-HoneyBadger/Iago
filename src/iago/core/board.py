@@ -196,6 +196,11 @@ class Board:
     def make_move(self, row: int, col: int, player: int) -> List[Tuple[int, int]]:
         """Play *player* at ``(row, col)``, flip discs and pass the turn.
 
+        The turn always passes to *player*'s opponent, even when *player* is not
+        the side the board currently considers active — replays and analysis
+        walk a move log and must not depend on the board's own idea of whose
+        turn it is.  Call :meth:`check_game_over` afterwards to apply passes.
+
         Returns the flipped cells, or an empty list (and no mutation) if the
         move is illegal.
         """
@@ -206,7 +211,7 @@ class Board:
         flipped: List[Tuple[int, int]] = []
         for dr, dc in DIRECTIONS:
             flipped.extend(self._flip_direction(row, col, dr, dc, player))
-        self.switch_player()
+        self.current_player = opponent(player)
         return flipped
 
     def switch_player(self) -> None:

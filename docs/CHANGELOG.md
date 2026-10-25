@@ -63,13 +63,14 @@ three game modes are unchanged, and Iago 3.0 save files still load.
   `--seed` for reproducible engine play, data-directory and diagnostic options.
 - Window title that follows the mode, difficulty and theme; animated “thinking” indicator.
 - Post-game review at depth 4, with the reviewed position cached per ply.
-- 399 headless tests (90% statement coverage), including perft validation,
+- 414 headless tests (91 % statement coverage), including perft validation,
   bitboard/reference fuzzing, brute-force endgame cross-checks, persistence migrations,
-  CLI and path-resolution coverage and scripted controller games.
+  CLI and path-resolution coverage, scripted controller games and an executable check of
+  the layering rules.
 - CI on Linux, macOS and Windows across Python 3.10–3.14 with black, flake8, mypy, pylint,
   coverage and wheel-build checks.
-- Documentation: user guide, architecture, AI design, development guide, save format,
-  changelog and generated screenshots.
+- Documentation: user guide, technical reference, architecture, AI design, development
+  guide, save format, changelog and generated screenshots.
 
 ### Changed
 - `./play.sh` now upgrades its environment from `pyproject.toml` and runs the installed
@@ -82,11 +83,18 @@ three game modes are unchanged, and Iago 3.0 save files still load.
 
 ### Fixed
 - The window no longer freezes while the engine thinks.
+- Hand-edited save files with a missing, non-numeric or malformed field are rejected with
+  a message instead of raising `KeyError`/`ValueError`; a save from a newer schema is
+  refused explicitly.
 - Loading a save from a different board size reconfigures the engines instead of raising
   `IndexError` on the next search.
 - A search that finishes after the position changed is discarded instead of producing an
   “illegal move” error.
 - Clock times recorded in a save are restored when the game is loaded.
+- `Board.make_move` passes the turn to the mover's opponent, so replays and analysis no
+  longer depend on the board's own turn tracking.
+- Loading a finished game shows its result panel and review instead of an inert board,
+  without counting the game twice.
 - Sound effects played for 25 ms instead of their intended 100 ms (8-bit mono buffers were
   handed to a 16-bit stereo mixer).
 - The win-probability labels no longer overlap the turn banner, and the hotkey column is

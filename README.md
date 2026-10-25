@@ -185,30 +185,32 @@ Iago_Deluxe/
 │   ├── util/        # logging and the exception hierarchy
 │   ├── branding.py  # app name, version, tagline
 │   └── cli.py       # argument parsing and entry point
-├── tests/           # 399 tests, all headless
-├── scripts/         # benchmark, self-play, book builder, screenshot generator
-└── docs/            # user guide, architecture, AI design, save format, changelog
+├── tests/           # 414 tests, all headless
+├── scripts/         # benchmark, self-play, stress, book builder, screenshots, layering
+└── docs/            # user guide, technical reference, architecture, AI design, save format
 ```
 
 ## Development
 
 ```bash
 ./setup.sh                    # venv + editable install + test run
-.venv/bin/pytest -q           # 399 tests
+.venv/bin/pytest -q           # 414 tests
 .venv/bin/black src tests     # formatting
 .venv/bin/flake8 src tests    # lint
 .venv/bin/mypy src/iago       # types
 .venv/bin/pylint src/iago     # static analysis
+python scripts/check_imports.py  # layering rules
 ```
 
 CI runs the suite on Linux, macOS and Windows across Python 3.10 – 3.14, and gates on
-formatting, lint, types, pylint and a wheel build.
+formatting, lint, types, pylint, the layering rules and a wheel build.
 
 ---
 
 ## Documentation
 
-- [User guide](docs/USER_GUIDE.md) — every screen, control and feature
+- [User guide](docs/USER_GUIDE.md) — the manual: rules, screens, controls, review, clocks
+- [Technical reference](docs/TECHNICAL_REFERENCE.md) — module APIs, invariants, recipes
 - [Architecture](docs/ARCHITECTURE.md) — modules, data flow, threading, rendering
 - [AI design](docs/AI_DESIGN.md) — bitboards, evaluation, search, endgames, benchmarks
 - [Development](docs/DEVELOPMENT.md) — setup, tests, packaging, extension points

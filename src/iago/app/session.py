@@ -62,8 +62,6 @@ class Snapshot:
     game_over: bool
     winner: Optional[int]
     last_move: Optional[Coordinate]
-    record_count: int
-    elapsed: float
     finished_at: Optional[float]
     lowest_probability: float
     clock_elapsed: Dict[int, float]
@@ -156,7 +154,6 @@ class Session:
         self.finished_at: Optional[float] = None
         self.last_move: Optional[Coordinate] = None
         self.lowest_probability = 0.5
-        self.pass_happened = False
         self.opening_name: Optional[str] = None
         self.revision = 0
 
@@ -248,7 +245,6 @@ class Session:
         self.lowest_probability = 0.5
         self.started_at = time.monotonic()
         self.finished_at = None
-        self.pass_happened = False
         self.opening_name = None
         self.revision += 1
 
@@ -297,7 +293,6 @@ class Session:
         self.redo_records.clear()
         self._redo_snapshots.clear()
         self.last_move = (row, col)
-        self.pass_happened = passed
         opening = identify_opening(self.to_move_log(), self.size)
         self.opening_name = opening.name if opening is not None else None
         self.clock.moves[player] = self.clock.moves.get(player, 0) + 1
@@ -320,7 +315,6 @@ class Session:
             return False
         now = time.monotonic() if now is None else now
         self.board.check_game_over()
-        self.pass_happened = True
         if not self.board.game_over:
             self.clock.stop(now)
             self.clock.start(self.current_player, now)
@@ -380,8 +374,6 @@ class Session:
             game_over=self.board.game_over,
             winner=self.board.winner,
             last_move=self.last_move,
-            record_count=len(self.records),
-            elapsed=now - self.started_at,
             finished_at=self.finished_at,
             lowest_probability=self.lowest_probability,
             clock_elapsed=self.clock.snapshot(),
@@ -399,7 +391,6 @@ class Session:
         self.clock.moves = dict(snapshot.clock_moves)
         self.finished_at = snapshot.finished_at
         self.revision += 1
-        self.pass_happened = False
 
     # ------------------------------------------------------------------
     # Replay and serialisation

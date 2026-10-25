@@ -591,3 +591,41 @@ def test_stats_badge_reflects_history(game):
 def test_hover_cell_is_suppressed_during_review(game):
     game._mouse = None
     assert game._hover_cell() is None
+
+
+def test_loading_a_finished_game_shows_the_result_without_recounting(data_dir):
+    import random
+
+    instance = Game(LaunchOptions(mode=MODE_HVAI, level=1))
+    try:
+        if instance.overlay == "resume":
+            instance._discard_resume()
+        instance._set_board_size(6)
+        rng = random.Random(3)
+        while not instance.session.game_over:
+            moves = instance.session.legal_moves()
+            if not moves:
+                instance.session.play_pending_pass()
+                continue
+            instance.session.apply_move(*rng.choice(moves))
+        payload = persistence.build_save_payload(
+            board_size=6,
+            mode=MODE_HVAI,
+            level=1,
+            player_color=PLAYER_BLACK,
+            moves=instance.session.to_move_log(),
+            game_over=True,
+            winner=instance.session.winner,
+        )
+        persistence.save_game_file(payload)
+
+        played = instance.stats.games_played
+        instance._load_game()
+        assert instance.session.game_over is True
+        assert instance.overlay == "gameover"
+        assert (
+            instance.stats.games_played == played
+        ), "a loaded game must not be counted"
+    finally:
+        for worker in (instance.worker, instance.hint_worker, instance.review_worker):
+            worker.cancel()

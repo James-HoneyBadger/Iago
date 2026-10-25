@@ -51,14 +51,22 @@ ENDGAME_WEIGHTS = Weights(
 TERMINAL_BONUS = 100_000_000
 
 
+#: Interpolated profiles, keyed by empty-square count.  Built lazily: this
+#: function runs at every leaf of the search, so it must not allocate.
+_WEIGHT_CACHE: dict[int, Weights] = {}
+
+
 def _weights(empties: int) -> Weights:
+    cached = _WEIGHT_CACHE.get(empties)
+    if cached is not None:
+        return cached
     if empties >= _OPENING_EMPTIES:
         return OPENING_WEIGHTS
     if empties <= _ENDGAME_EMPTIES:
         return ENDGAME_WEIGHTS
     span = _OPENING_EMPTIES - _ENDGAME_EMPTIES
     t = (empties - _ENDGAME_EMPTIES) / span
-    return Weights(
+    profile = Weights(
         mobility=int(
             ENDGAME_WEIGHTS.mobility
             + (OPENING_WEIGHTS.mobility - ENDGAME_WEIGHTS.mobility) * t
@@ -87,15 +95,20 @@ def _weights(empties: int) -> Weights:
             + (OPENING_WEIGHTS.parity - ENDGAME_WEIGHTS.parity) * t
         ),
     )
+    _WEIGHT_CACHE[empties] = profile
+    return profile
 
 
 @dataclass(frozen=True)
 class CornerTables:
-    """Pre-computed corner-related masks for one board size."""
+    """Pre-computed corner-related squares and masks for one board size."""
 
     corners: tuple[int, ...]
     x_squares: tuple[int, ...]
     c_squares: tuple[int, ...]
+    corner_mask: int
+    x_mask: int
+    c_mask: int
 
 
 _CORNER_TABLES: dict[int, CornerTables] = {}
@@ -132,23 +145,16 @@ def corner_tables(geometry: Geometry) -> CornerTables:
         bit(size - 2, size - 1),
         bit(size - 1, size - 2),
     )
-    table = CornerTables(corners=corners, x_squares=x_squares, c_squares=c_squares)
+    table = CornerTables(
+        corners=corners,
+        x_squares=x_squares,
+        c_squares=c_squares,
+        corner_mask=_mask_of(corners),
+        x_mask=_mask_of(x_squares),
+        c_mask=_mask_of(c_squares),
+    )
     _CORNER_TABLES[size] = table
     return table
-
-
-def count_bits(value: int) -> int:
-    return value.bit_count()
-
-
-def edge_discs(own: int, geometry: Geometry) -> int:
-    """Number of *own* discs on the outer ring."""
-
-    size = geometry.size
-    mask = geometry.column_masks[0] | geometry.column_masks[size - 1]
-    mask |= (1 << size) - 1
-    mask |= ((1 << size) - 1) << (size * (size - 1))
-    return (own & mask).bit_count()
 
 
 def stability(own: int, geometry: Geometry) -> int:
@@ -219,18 +225,18 @@ def evaluate(position: Position, own_moves: int | None = None) -> int:
         if not occupied & corner:
             empty_corners += 1
 
-    corner_value = (own & _mask_of(tables.corners)).bit_count() - (
-        other & _mask_of(tables.corners)
+    corner_value = (own & tables.corner_mask).bit_count() - (
+        other & tables.corner_mask
     ).bit_count()
 
     x_penalty = 0
     c_penalty = 0
     if empty_corners:
-        x_penalty = (own & _mask_of(tables.x_squares)).bit_count() - (
-            other & _mask_of(tables.x_squares)
+        x_penalty = (own & tables.x_mask).bit_count() - (
+            other & tables.x_mask
         ).bit_count()
-        c_penalty = (own & _mask_of(tables.c_squares)).bit_count() - (
-            other & _mask_of(tables.c_squares)
+        c_penalty = (own & tables.c_mask).bit_count() - (
+            other & tables.c_mask
         ).bit_count()
 
     stable = stability(own, geometry) - stability(other, geometry)
@@ -319,8 +325,6 @@ __all__ = [
     "TERMINAL_BONUS",
     "Weights",
     "corner_tables",
-    "count_bits",
-    "edge_discs",
     "evaluate",
     "evaluate_for_black",
     "stability",

@@ -5,7 +5,14 @@ from __future__ import annotations
 import pygame as pg
 import pytest
 
-from iago.app.keymap import AI_VS_AI, PLAYING, REPLAY, bindings_by_context, lookup
+from iago.app.keymap import (
+    AI_VS_AI,
+    BINDINGS,
+    PLAYING,
+    REPLAY,
+    bindings_by_context,
+    lookup,
+)
 from iago.ui.animation import (
     AnimatedValue,
     AnimationManager,
@@ -494,3 +501,58 @@ def test_wrap_text_breaks_on_words():
     assert len(lines) > 1
     assert all(" " not in line.strip() or len(line) < 80 for line in lines)
     assert wrap_text(fonts, "", "body", 80) == []
+
+
+# ---------------------------------------------------------------------------
+# Keymap documentation lock
+# ---------------------------------------------------------------------------
+
+
+def test_every_documented_shortcut_is_bound():
+    """The user guide's key table must stay true to ``BINDINGS``."""
+
+    cases = [
+        (pg.K_n, 0, PLAYING, "new_game"),
+        (pg.K_r, 0, PLAYING, "new_game"),
+        (pg.K_u, 0, PLAYING, "undo"),
+        (pg.K_z, pg.KMOD_CTRL, PLAYING, "undo"),
+        (pg.K_y, 0, PLAYING, "redo"),
+        (pg.K_y, pg.KMOD_CTRL, PLAYING, "redo"),
+        (pg.K_z, pg.KMOD_CTRL | pg.KMOD_SHIFT, PLAYING, "redo"),
+        (pg.K_h, 0, PLAYING, "toggle_hints"),
+        (pg.K_SPACE, 0, PLAYING, "hint"),
+        (pg.K_d, 0, PLAYING, "cycle_level"),
+        (pg.K_1, 0, PLAYING, "set_level"),
+        (pg.K_5, 0, PLAYING, "set_level"),
+        (pg.K_m, 0, PLAYING, "cycle_mode"),
+        (pg.K_t, 0, PLAYING, "cycle_theme"),
+        (pg.K_b, 0, PLAYING, "cycle_board_size"),
+        (pg.K_v, 0, PLAYING, "toggle_sound"),
+        (pg.K_s, 0, PLAYING, "save"),
+        (pg.K_s, pg.KMOD_CTRL, PLAYING, "save"),
+        (pg.K_l, 0, PLAYING, "load"),
+        (pg.K_o, pg.KMOD_CTRL, PLAYING, "load"),
+        (pg.K_a, 0, PLAYING, "analyse"),
+        (pg.K_p, 0, AI_VS_AI, "pause"),
+        (pg.K_PLUS, 0, AI_VS_AI, "faster"),
+        (pg.K_MINUS, 0, AI_VS_AI, "slower"),
+        (pg.K_SPACE, 0, REPLAY, "replay_toggle"),
+        (pg.K_RIGHT, 0, REPLAY, "replay_next"),
+        (pg.K_LEFT, 0, REPLAY, "replay_prev"),
+        (pg.K_HOME, 0, REPLAY, "replay_start"),
+        (pg.K_END, 0, REPLAY, "replay_end"),
+        (pg.K_o, 0, PLAYING, "options"),
+        (pg.K_TAB, 0, PLAYING, "options"),
+        (pg.K_F1, 0, PLAYING, "help"),
+        (pg.K_F11, 0, PLAYING, "fullscreen"),
+        (pg.K_F3, 0, PLAYING, "debug"),
+        (pg.K_ESCAPE, 0, PLAYING, "escape"),
+    ]
+    for key, mods, context, action in cases:
+        assert lookup(key, mods, context) == action, (key, mods, context)
+
+
+def test_documented_displays_exist_in_the_table():
+    displays = {binding.display for binding in BINDINGS}
+    for display in ("N / R", "U", "Y", "Ctrl+Z", "Ctrl+Y", "Ctrl+Shift+Z", "1–5"):
+        assert display in displays

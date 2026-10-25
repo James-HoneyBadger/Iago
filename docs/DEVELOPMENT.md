@@ -42,7 +42,7 @@ Pre-commit hooks (black, flake8, mypy and a few hygiene checks) are configured i
 
 | Command | Purpose |
 |---|---|
-| `pytest -q` | the whole suite (399 tests, ~25 s, headless) |
+| `pytest -q` | the whole suite (414 tests, ~25 s, headless) |
 | `pytest tests/test_search.py -q` | one module |
 | `pytest --cov --cov-report=term-missing` | coverage |
 | `black src tests scripts main.py` | format |
@@ -52,6 +52,7 @@ Pre-commit hooks (black, flake8, mypy and a few hygiene checks) are configured i
 | `python scripts/bench_search.py` | throughput and depth benchmarks |
 | `python scripts/selfplay.py --a 5 --b 4 --games 6` | strength validation |
 | `python scripts/stress_controller.py --seed 1` | randomised controller stress test |
+| `python scripts/check_imports.py` | verify the layering rules (`--full` for every edge) |
 | `python scripts/build_book.py` | regenerate the opening book |
 | `python scripts/generate_screenshots.py` | regenerate `docs/images/` |
 | `python -m build` | build sdist + wheel |

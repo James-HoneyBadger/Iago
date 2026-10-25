@@ -23,6 +23,7 @@ from ..core.constants import (
     MODES,
     PLAYER_BLACK,
     PLAYER_WHITE,
+    SUPPORTED_BOARD_SIZES,
 )
 from ..core.notation import move_name
 from ..util.errors import SaveFileError, SettingsError
@@ -281,47 +282,118 @@ def load_game(path: Optional[Path] = None) -> SavedGame:
     return _saved_game_from_payload(data)
 
 
+def _as_int(value: Any, field_name: str) -> int:
+    """Coerce *value* to ``int``, raising :class:`SaveFileError` if it cannot be."""
+
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise SaveFileError(f"Save file has a non-numeric {field_name}: {value!r}")
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise SaveFileError(
+            f"Save file has a non-numeric {field_name}: {value!r}"
+        ) from exc
+
+
+def _as_mapping(value: Any, field_name: str) -> Dict[str, Any]:
+    """Return *value* as a dict, tolerating ``None`` and rejecting other types."""
+
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise SaveFileError(f"Save file has a malformed {field_name}")
+    return value
+
+
+def _unwrap(value: Any, field_name: str) -> Any:
+    if value is not None and not isinstance(value, (dict, list)):
+        raise SaveFileError(f"Save file has a malformed {field_name}")
+    return value
+
+
+def _parse_v4_moves(raw: Any) -> List[Tuple[int, int, int]]:
+    moves: List[Tuple[int, int, int]] = []
+    for position, entry in enumerate(_unwrap(raw, "move list") or []):
+        if not isinstance(entry, dict):
+            raise SaveFileError(
+                f"Move {position + 1} in the save file is not an object"
+            )
+        for key in ("row", "col"):
+            if key not in entry:
+                raise SaveFileError(
+                    f"Move {position + 1} in the save file is missing '{key}'"
+                )
+        moves.append(
+            (
+                _as_int(entry.get("player", PLAYER_BLACK), "player"),
+                _as_int(entry["row"], "row"),
+                _as_int(entry["col"], "column"),
+            )
+        )
+    return moves
+
+
+def _parse_legacy_moves(raw: Any) -> List[Tuple[int, int, int]]:
+    moves: List[Tuple[int, int, int]] = []
+    for position, entry in enumerate(_unwrap(raw, "move list") or []):
+        if isinstance(entry, dict):
+            values = [entry.get("player"), entry.get("row"), entry.get("col")]
+        elif isinstance(entry, (list, tuple)) and len(entry) == 3:
+            values = list(entry)
+        else:
+            raise SaveFileError(f"Move {position + 1} in the save file is malformed")
+        player, row, col = values
+        moves.append(
+            (
+                _as_int(player if player is not None else PLAYER_BLACK, "player"),
+                _as_int(row, "row"),
+                _as_int(col, "column"),
+            )
+        )
+    return moves
+
+
 def _saved_game_from_payload(data: Dict[str, Any]) -> SavedGame:
-    schema = int(data.get("schema", 3))
+    schema = _as_int(data.get("schema", 3), "schema")
+    if schema > SAVE_SCHEMA:
+        raise SaveFileError(
+            f"Save file uses schema {schema}, but this build understands at most "
+            f"{SAVE_SCHEMA}; it was probably written by a newer version of Iago"
+        )
     game = SavedGame(schema=schema, saved_at=str(data.get("saved_at", "")))
 
     if schema >= 4:
-        game.board_size = int(data.get("board_size", DEFAULT_BOARD_SIZE))
+        game.board_size = _as_int(
+            data.get("board_size", DEFAULT_BOARD_SIZE), "board size"
+        )
         game.mode = str(data.get("mode", MODE_HVAI))
-        game.level = int(data.get("ai_level", 3))
-        game.player_color = int(data.get("player_color", PLAYER_BLACK))
-        game.clocks = dict(data.get("clocks") or {})
-        result = data.get("result") or {}
+        game.level = _as_int(data.get("ai_level", 3), "AI level")
+        game.player_color = _as_int(data.get("player_color", PLAYER_BLACK), "colour")
+        game.clocks = dict(_as_mapping(data.get("clocks"), "clock block"))
+        result = _as_mapping(data.get("result"), "result block")
         game.game_over = bool(result.get("game_over", False))
         winner = result.get("winner")
-        game.winner = None if winner is None else int(winner)
-        moves = data.get("moves") or []
-        for entry in moves:
-            if isinstance(entry, dict):
-                game.moves.append(
-                    (
-                        int(entry.get("player", PLAYER_BLACK)),
-                        int(entry["row"]),
-                        int(entry["col"]),
-                    )
-                )
-            else:  # pragma: no cover - defensive
-                raise SaveFileError("Malformed move entry in save file")
+        game.winner = None if winner is None else _as_int(winner, "winner")
+        game.moves = _parse_v4_moves(data.get("moves"))
     else:
-        settings = data.get("settings") or {}
-        game.board_size = int(settings.get("board_size", DEFAULT_BOARD_SIZE))
+        settings = _as_mapping(data.get("settings"), "settings block")
+        game.board_size = _as_int(
+            settings.get("board_size", DEFAULT_BOARD_SIZE), "board size"
+        )
         game.mode = str(settings.get("game_mode", MODE_HVAI))
-        game.level = int(settings.get("ai_difficulty", 3))
-        game.player_color = int(settings.get("player_color", PLAYER_BLACK))
+        game.level = _as_int(settings.get("ai_difficulty", 3), "AI level")
+        game.player_color = _as_int(
+            settings.get("player_color", PLAYER_BLACK), "colour"
+        )
         game.game_over = bool(data.get("game_over", False))
         winner = data.get("winner")
-        game.winner = None if winner is None else int(winner)
-        for entry in data.get("move_log") or []:
-            player, row, col = entry
-            game.moves.append((int(player), int(row), int(col)))
+        game.winner = None if winner is None else _as_int(winner, "winner")
+        game.moves = _parse_legacy_moves(data.get("move_log"))
 
-    if game.board_size < 4:
-        raise SaveFileError("Save file has an invalid board size")
+    if game.board_size not in SUPPORTED_BOARD_SIZES:
+        raise SaveFileError(
+            f"Save file has an unsupported board size: {game.board_size}"
+        )
     if game.mode not in MODES:
         game.mode = MODE_HVAI
     if game.player_color not in (PLAYER_BLACK, PLAYER_WHITE):

@@ -272,3 +272,57 @@ def test_clock_elapsed_rejects_bad_payloads():
     assert SavedGame(moves=MOVES, clocks={}).clock_elapsed() == {}
     assert SavedGame(moves=MOVES, clocks={"elapsed": [1, 2]}).clock_elapsed() == {}
     assert SavedGame(moves=MOVES, clocks={"elapsed": {"1": -5.0}}).clock_elapsed() == {}
+
+
+@pytest.mark.parametrize(
+    "payload, fragment",
+    [
+        ({"schema": 4, "moves": [{"player": 1, "col": 2}]}, "missing 'row'"),
+        ({"schema": 4, "moves": [{"player": 1, "row": "x", "col": 2}]}, "non-numeric"),
+        ({"schema": 4, "moves": ["nope"]}, "not an object"),
+        ({"schema": 4, "moves": "nope"}, "malformed move list"),
+        ({"schema": 4, "result": [1]}, "malformed result"),
+        ({"schema": 4, "clocks": 5}, "malformed clock"),
+        ({"schema": "x"}, "non-numeric schema"),
+        ({"schema": 4, "board_size": 9}, "unsupported board size"),
+        ({"schema": 3, "settings": 5}, "malformed settings"),
+        ({"schema": 3, "move_log": [[1, 2]]}, "malformed"),
+    ],
+)
+def test_malformed_saves_raise_save_file_error(tmp_path, payload, fragment):
+    path = tmp_path / "broken.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(SaveFileError) as excinfo:
+        persistence.load_game(path)
+    assert fragment in str(excinfo.value)
+
+
+def test_legacy_save_accepts_list_and_dict_moves(tmp_path):
+    payload = {
+        "schema": 3,
+        "settings": {"board_size": 8, "game_mode": "hvai", "ai_difficulty": 2},
+        "move_log": [[1, 2, 3], {"player": 2, "row": 2, "col": 4}],
+    }
+    path = tmp_path / "legacy.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    saved = persistence.load_game(path)
+    assert saved.moves == [(1, 2, 3), (2, 2, 4)]
+
+
+def test_a_newer_save_schema_is_rejected(tmp_path):
+    path = tmp_path / "future.json"
+    path.write_text(
+        json.dumps({"schema": persistence.SAVE_SCHEMA + 1}), encoding="utf-8"
+    )
+    with pytest.raises(SaveFileError) as excinfo:
+        persistence.load_game(path)
+    assert "newer version" in str(excinfo.value)
+
+
+def test_a_newer_settings_schema_still_loads(tmp_path):
+    path = tmp_path / "settings.json"
+    payload = {"schema": 99, "settings": {"theme": "midnight", "ai_level": 4}}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    settings = persistence.load_settings(path)
+    assert settings.theme == "midnight"
+    assert settings.ai_level == 4

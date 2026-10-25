@@ -158,10 +158,10 @@ def test_load_move_log_rejects_desync(session):
 
 
 def test_pass_handling_detects_passed_turn(session):
-    # Black plays d3, White plays e3, then Black has moves, so no pass yet.
+    # Black plays d3, White plays e3; both still have moves, so no pass.
     session.apply_move(2, 3)
     session.apply_move(2, 4)
-    assert session.pass_happened is False
+    assert not session.records[-1].passed_next
     assert not session.play_pending_pass()
 
 

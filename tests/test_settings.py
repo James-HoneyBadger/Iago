@@ -11,6 +11,7 @@ from iago.app.achievements import (
     evaluate as evaluate_achievements,
     progress,
 )
+from iago.ui.layout import compute_layout
 from iago.app.settings import GameSettings, GameStats
 from iago.core.constants import PLAYER_BLACK, PLAYER_WHITE
 from iago.ui.theme import DEFAULT_THEME_KEY
@@ -312,3 +313,13 @@ def test_summary_player_score_switches_with_colour():
     assert white.player_score == 44
     assert white.opponent_score == 20
     assert white.won
+
+
+def test_ui_scale_is_clamped_to_the_shared_range():
+    from iago.ui.layout import MAX_UI_SCALE, MIN_UI_SCALE
+
+    assert GameSettings(ui_scale=9.0).validated().ui_scale == MAX_UI_SCALE
+    assert GameSettings(ui_scale=0.1).validated().ui_scale == MIN_UI_SCALE
+    layout_test_scale = MAX_UI_SCALE
+    assert compute_layout((1200, 900), 8, layout_test_scale).ui_scale == MAX_UI_SCALE
+    assert compute_layout((1200, 900), 8, 4.0).ui_scale == MAX_UI_SCALE

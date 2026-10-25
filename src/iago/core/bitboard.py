@@ -4,11 +4,14 @@ Squares are numbered row-major (``index = row * size + col``) and stored as bit
 ``1 << index`` in a Python ``int``.  Python integers are arbitrary precision, so
 a single implementation serves 6×6, 8×8 and 10×10 boards without special cases.
 
-Move generation uses the classic shift-and-mask technique: for each of the eight
-directions, shift the mover's discs, intersect with enemy discs, propagate the
-run by repeated shifts (doubling the reach each time), then intersect with the
-empty squares.  Positions are immutable; :meth:`Position.apply` returns a new
-position and maintains an incremental Zobrist hash.
+Move generation uses the shift-and-mask technique: for each of the eight
+directions, shift the mover's discs and intersect with the enemy discs; the run
+is then grown by a ``while`` loop that stops as soon as it stops growing (the
+classic doubling formulation needs a fixed number of steps per board size and
+silently truncates runs if that count is wrong).  The grown run is shifted one
+more square and intersected with the empty squares to give the legal moves.
+Positions are immutable; :meth:`Position.apply` returns a new position and
+maintains an incremental Zobrist hash.
 """
 
 from __future__ import annotations
@@ -24,10 +27,6 @@ from .constants import (
     PLAYER_WHITE,
     opponent,
 )
-
-#: Number of doubling steps needed to cover a contiguous run on any board we
-#: support (5 steps reach 32 discs; the longest possible run is ``size - 2``).
-_RUN_STEPS = 5
 
 
 def iter_bits(mask: int) -> Iterator[int]:

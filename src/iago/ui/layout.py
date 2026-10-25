@@ -176,6 +176,11 @@ def clamp_window(size: Tuple[int, int]) -> Tuple[int, int]:
     return width, height
 
 
+#: Interface scale bounds, shared by the settings, the slider and the layout.
+MIN_UI_SCALE = 0.75
+MAX_UI_SCALE = 1.5
+
+
 def compute_layout(
     window_size: Tuple[int, int],
     board_size: int = DEFAULT_BOARD_SIZE,
@@ -184,7 +189,7 @@ def compute_layout(
     """Compute the full layout for a window of *window_size* pixels."""
 
     width, height = clamp_window(window_size)
-    ui_scale = max(0.75, min(2.0, ui_scale))
+    ui_scale = max(MIN_UI_SCALE, min(MAX_UI_SCALE, ui_scale))
 
     menubar_h = int(MENUBAR_HEIGHT * ui_scale)
     status_h = int(STATUS_HEIGHT * ui_scale)
@@ -259,6 +264,8 @@ def centered_panel(layout: Layout, width: int, height: int) -> Rect:
 
 
 __all__ = [
+    "MAX_UI_SCALE",
+    "MIN_UI_SCALE",
     "GUTTER",
     "Layout",
     "MAX_CELL",

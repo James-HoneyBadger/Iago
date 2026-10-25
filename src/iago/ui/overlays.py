@@ -18,7 +18,7 @@ from ..core.constants import MODE_LABELS, PLAYER_BLACK, PLAYER_WHITE
 from .assets import FontBook, shade
 from .drawing import draw_bar, draw_panel, draw_text, fit_text
 from .hud import format_clock
-from .layout import Layout, Rect, centered_panel
+from .layout import MAX_UI_SCALE, MIN_UI_SCALE, Layout, Rect, centered_panel
 from .theme import THEMES, THEME_ORDER, Theme
 from .widgets import Button, draw_segmented, draw_slider, draw_tabs, draw_toggle
 
@@ -416,7 +416,9 @@ def _options_appearance(
         scale_row.w - int(210 * scale),
         20,
     )
-    draw_slider(surface, theme, slider, (settings.ui_scale - 0.75) / 0.75)
+    span = MAX_UI_SCALE - MIN_UI_SCALE
+    position = (settings.ui_scale - MIN_UI_SCALE) / span if span else 0.0
+    draw_slider(surface, theme, slider, position)
     draw_text(
         surface,
         fonts,

@@ -175,15 +175,39 @@ a warning rather than crashing the game. Book moves are used by Hard, Expert and
 ## Post-game analysis
 
 `iago.app.analysis.analyse_moves` replays the finished game and, for every ply, ranks all
-legal moves with `Searcher.rank` at `REVIEW_DEPTH = 4`. Each played move is scored by the
-*worst-case* loss in win probability (percentage points) against the engine's best move:
-`Best` ≤ 0.5, `Good` ≤ 2, `Inaccuracy` ≤ 5, `Mistake` ≤ 12, otherwise `Blunder`.
-Accuracy is `100 · exp(-mean_loss / 25)`.
+legal moves with `Searcher.rank` at `REVIEW_DEPTH = 4` (defined in `app/analysis.py` and
+imported by the controller, so there is one number to change). The played move is compared
+with the engine's best move in the same position and rated by the **drop in winning
+probability**, in percentage points:
+
+| Rating | Loss (percentage points) |
+|---|---|
+| Best | ≤ 0.5 |
+| Good | ≤ 2 |
+| Inaccuracy | ≤ 5 |
+| Mistake | ≤ 12 |
+| Blunder | > 12 |
+
+Accuracy is `100 · exp(-mean_loss / 25)`, so a game with no mistakes scores 100 % and each
+point of average loss costs about 4 % of accuracy.
+
+Working in probability space rather than raw scores is what makes the ratings comparable
+between the opening (heuristic scores of a few hundred) and the endgame (exact disc
+differences of ±100 000 000). The mapping used here
+(`analysis.win_probability_from_score`, logistic with scale 600, clamped at ±5000) is
+deliberately *not* the one used by the evaluation bar
+(`evaluation.win_probability`, scale 900, blended towards the disc share under 10 empties):
+the bar wants a smooth, conservative curve, while the review needs one that saturates
+quickly so a winning endgame move is rated `Best` rather than `Mistake`.
 
 Depth 4 costs ≈ 2 s for a full 60-move game on a single CPU core and runs on a background
-thread, so the result panel appears immediately while the numbers fill in. Deeper reviews
-are available from the tests (`analyse_moves(..., depth=6)`); the trade-off is roughly
-quadrupling that time for a modest change in the labels.
+thread, so the result panel appears immediately while the numbers fill in. `rank()` scores
+each root move with a full window (no PVS) because the review needs *every* score, not just
+the best one; it also lowers the in-tree exact-endgame threshold to
+`min(8, empties - depth)`, which keeps late positions honest without letting a single root
+move take seconds. Deeper reviews are available programmatically
+(`analyse_moves(..., depth=6)`); the trade-off is roughly quadrupling the time for a modest
+change in the labels.
 
 ---
 
@@ -209,16 +233,16 @@ Reference machine: Python 3.14, aarch64, `pygame-ce` 2.5.8. Reproduce with
 
 | Primitive | Rate |
 |---|---|
-| Move generation | **≈ 278 000 / s** |
-| Position apply (place + flips + hash) | **≈ 396 000 / s** |
+| Move generation | **≈ 285 000 / s** |
+| Position apply (place + flips + hash) | **≈ 413 000 / s** |
 
 | Thinking budget | Median depth | Nodes | Nodes / s |
 |---|---|---|---|
-| 0.25 s | 5.5 | 16 384 | 63 825 |
-| 0.50 s | 6.5 | 20 019 | 63 458 |
-| 1.00 s | 7.5 | 43 825 | 60 585 |
-| 2.50 s | 8.5 | 132 626 | 59 640 |
-| 5.00 s | 8.5 | 289 792 | 57 844 |
+| 0.25 s | 6.0 | 17 755 | 70 390 |
+| 0.50 s | 6.5 | 26 573 | 63 575 |
+| 1.00 s | 7.5 | 43 825 | 65 004 |
+| 2.50 s | 8.5 | 132 626 | 65 578 |
+| 5.00 s | 8.5 | 306 176 | 61 141 |
 
 These are mid-game positions (14–19 plies played) with the exact-endgame threshold at 12.
 

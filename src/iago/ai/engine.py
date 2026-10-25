@@ -163,24 +163,6 @@ class Engine:
         )
         return self._hint_searcher.search(position, limits).move
 
-    def analyse(
-        self,
-        board: BoardLike,
-        time_limit: float = 1.0,
-        max_depth: int = 20,
-        endgame_empties: int = 12,
-        progress=None,
-    ) -> SearchResult:
-        """Run an arbitrary analysis search (used by hints and game review)."""
-
-        position = self._position_for(board)
-        limits = SearchLimits(
-            time_limit=time_limit,
-            max_depth=max_depth,
-            endgame_empties=endgame_empties,
-        )
-        return self._hint_searcher.search(position, limits, progress=progress)
-
     def analyse_limits(
         self,
         board: BoardLike,
@@ -197,13 +179,6 @@ class Engine:
         """Ask the main search engine to stop as soon as possible."""
 
         self._searcher.cancel()
-
-    def book_move(self, board: BoardLike) -> Optional[Tuple[int, int]]:
-        position = self._position_for(board)
-        move = self._book.lookup(self._log)
-        if move is not None and move in position.legal_move_list():
-            return move
-        return None
 
     def opening_name(self) -> Optional[str]:
         return self._book.name_for(self._log)

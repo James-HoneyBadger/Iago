@@ -3,6 +3,7 @@
 | Document | Read it when you want to… |
 |---|---|
 | [User guide](USER_GUIDE.md) | play the game: screens, controls, modes, hints, review, clocks |
+| [Technical reference](TECHNICAL_REFERENCE.md) | look up a module's API, an invariant, or the recipe for adding a theme, level, achievement or widget |
 | [Architecture](ARCHITECTURE.md) | understand how the code is organised, and how threading and rendering work |
 | [AI design](AI_DESIGN.md) | understand the engine: bitboards, evaluation, search, endgames, benchmarks |
 | [Development](DEVELOPMENT.md) | set up a checkout, run the tools, add a theme or a difficulty |

@@ -81,6 +81,9 @@ jobs:
       - name: Static analysis (pylint)
         run: pylint src/iago
 
+      - name: Layering rules
+        run: python scripts/check_imports.py
+
       - name: Build the distribution
         run: python -m build
 

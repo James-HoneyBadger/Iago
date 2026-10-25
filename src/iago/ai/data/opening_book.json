@@ -1,0 +1,184 @@
+{
+  "schema": 1,
+  "board_size": 8,
+  "generated_by": "scripts/build_book.py",
+  "rank_depth": 4,
+  "lines": [
+    {
+      "name": "Diagonal d3",
+      "moves": [
+        "d3",
+        "c5",
+        "f6",
+        "e3"
+      ],
+      "eval_white_reply": -137,
+      "eval_black_reply": 0
+    },
+    {
+      "name": "Diagonal d3 2",
+      "moves": [
+        "d3",
+        "c5",
+        "e6",
+        "d2"
+      ],
+      "eval_white_reply": -137,
+      "eval_black_reply": -28
+    },
+    {
+      "name": "Tiger",
+      "moves": [
+        "d3",
+        "e3",
+        "f4",
+        "c5"
+      ],
+      "eval_white_reply": -489,
+      "eval_black_reply": 134
+    },
+    {
+      "name": "Tiger 2",
+      "moves": [
+        "d3",
+        "e3",
+        "f3",
+        "c5"
+      ],
+      "eval_white_reply": -489,
+      "eval_black_reply": -162
+    },
+    {
+      "name": "Raccoon",
+      "moves": [
+        "c4",
+        "e3",
+        "f6",
+        "c5"
+      ],
+      "eval_white_reply": -137,
+      "eval_black_reply": 0
+    },
+    {
+      "name": "Raccoon 2",
+      "moves": [
+        "c4",
+        "e3",
+        "f5",
+        "b4"
+      ],
+      "eval_white_reply": -137,
+      "eval_black_reply": -28
+    },
+    {
+      "name": "Parallel c4",
+      "moves": [
+        "c4",
+        "c5",
+        "d6",
+        "e3"
+      ],
+      "eval_white_reply": -489,
+      "eval_black_reply": 134
+    },
+    {
+      "name": "Parallel c4 2",
+      "moves": [
+        "c4",
+        "c5",
+        "c6",
+        "e3"
+      ],
+      "eval_white_reply": -489,
+      "eval_black_reply": -162
+    },
+    {
+      "name": "Parallel f5",
+      "moves": [
+        "f5",
+        "d6",
+        "c3",
+        "f4"
+      ],
+      "eval_white_reply": -137,
+      "eval_black_reply": 0
+    },
+    {
+      "name": "Parallel f5 2",
+      "moves": [
+        "f5",
+        "d6",
+        "c4",
+        "g5"
+      ],
+      "eval_white_reply": -137,
+      "eval_black_reply": -28
+    },
+    {
+      "name": "Horse",
+      "moves": [
+        "f5",
+        "f4",
+        "e3",
+        "d6"
+      ],
+      "eval_white_reply": -489,
+      "eval_black_reply": 134
+    },
+    {
+      "name": "Horse 2",
+      "moves": [
+        "f5",
+        "f4",
+        "d3",
+        "f6"
+      ],
+      "eval_white_reply": -489,
+      "eval_black_reply": -162
+    },
+    {
+      "name": "Diagonal e6",
+      "moves": [
+        "e6",
+        "f4",
+        "c3",
+        "d6"
+      ],
+      "eval_white_reply": -137,
+      "eval_black_reply": 0
+    },
+    {
+      "name": "Diagonal e6 2",
+      "moves": [
+        "e6",
+        "f4",
+        "d3",
+        "e7"
+      ],
+      "eval_white_reply": -137,
+      "eval_black_reply": -28
+    },
+    {
+      "name": "Rabbit",
+      "moves": [
+        "e6",
+        "d6",
+        "c5",
+        "f4"
+      ],
+      "eval_white_reply": -489,
+      "eval_black_reply": 134
+    },
+    {
+      "name": "Rabbit 2",
+      "moves": [
+        "e6",
+        "d6",
+        "c4",
+        "f6"
+      ],
+      "eval_white_reply": -489,
+      "eval_black_reply": -162
+    }
+  ]
+}

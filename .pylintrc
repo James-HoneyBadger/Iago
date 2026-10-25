@@ -5,30 +5,33 @@ disable=
     C0116,  # missing-function-docstring
     R0903,  # too-few-public-methods
     R0912,  # too-many-branches
+    R0914,  # too-many-locals (search/evaluation are deliberately dense)
     R0915,  # too-many-statements
-    W0613,  # unused-argument
-    C0103,  # invalid-name
-    C0411,  # wrong-import-order
-    C0413,  # wrong-import-position
-    E0401,  # import-error
-    E1101,  # no-member
-    W1514,  # unspecified-encoding
-    W0718,  # broad-exception-caught
-    W0611,  # unused-import
-    W0401,  # wildcard-import
-    W0621,  # redefined-outer-name
-    W0107,  # unnecessary-pass
-    C0121,  # singleton-comparison
-    E0602,  # undefined-variable
-    E0606,  # possibly-used-before-assignment
     R0913,  # too-many-arguments
     R0917,  # too-many-positional-arguments
     R0902,  # too-many-instance-attributes
     R0904,  # too-many-public-methods
     R1705,  # no-else-return
+    W0613,  # unused-argument (callbacks)
+    W0718,  # broad-exception-caught
+    W1514,  # unspecified-encoding
+    C0103,  # invalid-name
+    C0411,  # wrong-import-order (black owns import ordering)
+    C0413,  # wrong-import-position
+    E0401,  # import-error (checked by mypy)
+    E1101,  # no-member (pygame stubs)
+    W0611,  # unused-import (flake8 owns this)
+    W0401,  # wildcard-import
+    W0621,  # redefined-outer-name (pytest fixtures)
+    W0107,  # unnecessary-pass
+    C0121,  # singleton-comparison
+    E0602,  # undefined-variable (flake8 owns this)
+    E0606,  # possibly-used-before-assignment
+    R0801,  # duplicate-code (small shared tables)
 
 [FORMAT]
 max-line-length=88
 
 [REPORTS]
 output-format=colorized
+score=yes

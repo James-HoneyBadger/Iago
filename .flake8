@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 88
-extend-ignore = E203, W503, E402, F401, F403, F405
+extend-ignore = E203, W503, E402
 exclude =
     .git,
     __pycache__,
@@ -8,9 +8,9 @@ exclude =
     venv,
     build,
     dist,
+    docs,
     *.egg-info
 per-file-ignores =
-    __init__.py:F401
-    main.py:E402
-    src/__init__.py:F401,F403
+    src/iago/__main__.py:E402
+    scripts/*.py:E402
     tests/*.py:E402

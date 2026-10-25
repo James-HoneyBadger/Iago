@@ -1,146 +1,284 @@
-# Iago Deluxe — User Guide
+# Iago — User Guide
 
-## Starting the Game
+Everything the game can do, screen by screen.
+
+- [Starting the game](#starting-the-game)
+- [The window](#the-window)
+- [Playing](#playing)
+- [Game modes](#game-modes)
+- [Difficulty](#difficulty)
+- [Hints and analysis](#hints-and-analysis)
+- [Options](#options)
+- [Statistics and achievements](#statistics-and-achievements)
+- [Post-game review](#post-game-review)
+- [Clocks](#clocks)
+- [Saving, loading and resuming](#saving-loading-and-resuming)
+- [Keyboard reference](#keyboard-reference)
+- [Command line](#command-line)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Starting the game
 
 ```bash
-./play.sh                        # recommended (uses .venv automatically)
-.venv/bin/python3 src/main.py    # direct invocation
+./play.sh                 # sets everything up on first run, then launches
 ```
+
+Other ways to start it:
+
+```bash
+.venv/bin/python -m iago      # module entry point
+.venv/bin/iago                # installed console script
+python main.py                # compatibility shim
+```
+
+The first launch creates a virtual environment, installs `pygame-ce` and starts the
+game. Subsequent launches are immediate.
 
 ---
 
-## Window Layout
+## The window
 
-```
-┌──────────────────────────────────────────────────────┐
-│  [New Game]  [Undo]  [Redo]  [Options]    Iago Deluxe │  ← menu bar (32 px)
-├──────────────────────────────────────────────────────┤
-│                                          │ Move history│
-│               8 × 8 board               │  sidebar    │
-│                                          │             │
-├──────────────────────────────────────────┤             │
-│  Score | Mode            turn / game-over│             │
-│  Win-probability bar  (B ██████░░ W)     │  Hotkeys    │
-└──────────────────────────────────────────────────────┘
-```
+![Iago, Classic theme](images/board-classic.png)
 
-### Menu bar
-Four buttons at the top of the window: **New Game**, **Undo**, **Redo**, and **Options**.
-The Options button turns green while the overlay is open.
+| Area | What it shows |
+|---|---|
+| **Menu bar** (top) | New Game · Undo · Redo · Hint · Options · Help, plus your saved record |
+| **Board** | The 6×6, 8×8 or 10×10 grid, framed in wood, with coordinates on the edges |
+| **Sidebar** (wide windows) | Opening name, evaluation graph, full move list, hint line |
+| **Status bar** (bottom) | Disc counts, mode, difficulty, whose turn it is, clocks, win probability |
+| **Overlays** | Options, Controls, Statistics, Game over and Resume prompts |
 
-### Board area
-- **Green dots** — legal moves for the current player.
-- **Gold star ★** — the AI's recommended best move (shown when hints are on).
-- **Hover preview** — move your cursor over a legal cell to see which pieces would flip (tinted green).
-- **Gold ring** — marks the square where the last move was played.
+The layout is responsive. Narrow the window and the sidebar folds away; resize freely,
+press **F11** for fullscreen, and use **Appearance → Interface scale** if everything is
+too small or too large.
 
-### Win-probability bar
-Displayed below the board during play.  The bar shows `B xx% ←→ W xx%`, updated after
-every move using the AI's position evaluation.
+### Board furniture
 
-### Move-history sidebar
-All moves in full algebraic notation (e.g. `e6`, `d3`) from the start of the game.
-The most recent move is highlighted.  In replay mode a step counter is shown at the bottom.
+- **Dots** — legal moves for the side to move.
+- **★ gold star** — the engine's suggested move (computed instantly after each move).
+- **Gold ring** — the square played last; it pulses gently.
+- **Tinted squares** — the discs that would flip if you played the square under the
+  cursor.
+- **Ghost disc** — a translucent preview of the disc you are about to place.
+- **High Contrast theme** replaces dots and stars with a hollow square and a diamond, so
+  the markers stay distinguishable without relying on colour.
 
 ---
 
-## Keyboard Shortcuts
+## Playing
+
+1. Click any square marked with a dot. The disc is placed, captured discs flip outward
+   from the square, and play passes to the other side.
+2. If a side has no legal move, the turn is passed automatically and a toast tells you
+   so.
+3. The game ends when neither side can move. The result panel shows the winner and the
+   final disc count.
+
+Illegal clicks are rejected with a short buzz and a small shake — nothing changes on the
+board.
+
+### Undo and redo
+
+**U** (or **Ctrl+Z**) steps back one *round* when you play against the engine: it undoes
+the engine's reply as well as your move, so you are always returned to your own turn.
+**Y** redoes one move at a time. Undo and redo are unlimited and also restore the clocks.
+
+---
+
+## Game modes
+
+| Mode | Description |
+|---|---|
+| **Human vs AI** | You against the engine. Choose your colour in Options. |
+| **2-Player** | Two humans share the keyboard and mouse. |
+| **AI vs AI** | Watch two engines play. **P** pauses, **+**/**-** change the speed (Instant → Slow). |
+
+Switch modes with **M** or from **Options → Game**. Changing the mode starts a new game.
+
+---
+
+## Difficulty
+
+| Level | Name | Thinking time | What it does |
+|---|---|---|---|
+| 1 | Easy | instant | Plays a random legal move. |
+| 2 | Medium | instant | One-ply look-ahead with deliberate noise — beatable but not silly. |
+| 3 | Hard | 0.6 s | Full alpha-beta search plus the opening book. |
+| 4 | Expert | 2.5 s | Transposition table, deeper search, exact endgame solving. |
+| 5 | Master | 5 s | Tournament settings; solves more of the endgame perfectly. |
+
+Change it with **D** (cycle), **1**–**5** (direct) or Options. Changing difficulty applies
+immediately, even mid-game.
+
+While the engine thinks, the status bar shows its live search depth, node count and
+nodes per second, and the window stays fully responsive — you can resize it, open
+Options, or press Undo to abandon the search.
+
+---
+
+## Hints and analysis
+
+- **H** toggles the move markers (dots and star).
+- **Space** asks the engine for a stronger suggestion; the result appears as the gold
+  star and in the sidebar as `Hint: c4`.
+- **A** (after the game ends, or any time) runs a full review of the game.
+
+---
+
+## Options
+
+![Options](images/options.png)
+
+**Game**
+- Mode, difficulty, colour, board size (6×6 / 8×8 / 10×10) and clock.
+- Changing mode, colour or board size starts a new game.
+
+**Appearance**
+- Theme grid (Classic, Walnut, Ocean, Sunset, Forest, Midnight, High Contrast).
+- Toggles for animations, particles, board coordinates and the evaluation bar.
+- Interface scale slider (0.75× – 1.5×).
+
+**Audio**
+- Sound on/off, volume slider and a test button.
+
+**Controls**
+- A complete, always-current list of key bindings (the same table the controller uses).
+
+---
+
+## Statistics and achievements
+
+![Statistics](images/statistics.png)
+
+- Totals: games, wins, win rate, best score and best winning streak.
+- A per-difficulty table with a win-rate bar.
+- Achievements, unlocked as you play: **First Blood**, **Seasoned**, **Giant Slayer**
+  (beat Master), **Flawless** (hold every square), **Clean Sheet**, **Against the Odds**
+  (win from under 15% winning chances), **On Fire** (five wins in a row), **Blitz**,
+  **To the Last Disc**, **Devoted** and **Grand Slam** (beat every level).
+
+Statistics are recorded for Human vs AI games and persist between sessions. Newly
+unlocked achievements appear as toasts at the end of a game.
+
+---
+
+## Post-game review
+
+![Game over and review](images/game-over.png)
+
+When a game ends, the result panel shows the score, the number of moves, the elapsed
+time and the mode. It then analyses the game in the background:
+
+- **Accuracy** for both sides (0–100%).
+- Counts of **blunders**, **mistakes** and **inaccuracies**.
+- **Key moments**: the three costliest moves, with the move that should have been
+  played instead.
+- The sidebar marks every reviewed move with its rating, colour-coded from green
+  (best) to red (blunder).
+
+Click any move in the sidebar, or use **←**/**→**, to step through the game and see the
+position at that point. **Space** plays the game back automatically.
+
+---
+
+## Clocks
+
+Choose **Off**, **Stopwatch** or **Blitz** in Options.
+
+- **Stopwatch** counts up for each side; purely informational.
+- **Blitz 5+3** and **Blitz 10+0** count down. Running out of time ends the game and the
+  opponent wins on time.
+
+Clock times are shown in the status bar and turn amber below 20 seconds.
+
+---
+
+## Saving, loading and resuming
+
+- **S** (or **Ctrl+S**) saves to the data directory as `saved_game.json`.
+- **L** (or **Ctrl+O**) loads it, rebuilding the position from the recorded moves and
+  validating each one.
+- The game **autosaves** every ten moves, when a game ends, and when you quit.
+- If an autosave exists at start-up you are offered **Resume** or **Start fresh**.
+
+Save files are versioned and portable between operating systems. Iago 3.0 save files
+still load.
+
+---
+
+## Keyboard reference
+
+Press **F1** in game for this list.
 
 | Key | Action |
 |---|---|
-| **O** or **Tab** | Toggle Options overlay |
-| **R** | New game |
-| **U** | Undo last move |
-| **Y** | Redo undone move |
-| **H** | Toggle move hints (green dots + gold star) |
-| **D** | Cycle AI difficulty (Easy → Medium → Hard → Expert) |
-| **M** | Cycle game mode (HvAI → HvH → AvA) |
-| **S** | Save game to `saved_game.json` |
-| **L** | Load saved game and enter replay mode |
-| **Space** or **P** | Advance replay by one move |
-| **ESC** | Close overlay; press again to quit (auto-saves) |
+| Click | Play / inspect |
+| N, R | New game |
+| U, Ctrl+Z | Undo |
+| Y, Ctrl+Y | Redo |
+| H | Toggle hints |
+| Space | Engine hint *(replay: play/pause)* |
+| D, 1–5 | Difficulty |
+| M | Game mode |
+| T | Theme |
+| B | Board size |
+| V | Mute |
+| S, Ctrl+S | Save |
+| L, Ctrl+O | Load |
+| A | Analyse |
+| P | Pause AI vs AI |
+| + / − | AI vs AI speed |
+| ← / → / Home / End | Replay stepping |
+| O, Tab | Options |
+| F1 | Controls |
+| F11 | Fullscreen |
+| F3 | Debug overlay |
+| Esc | Close overlay / quit |
 
 ---
 
-## Options Overlay
+## Command line
 
-Open with **O**, **Tab**, or the Options button in the menu bar.
+```
+iago [--theme KEY] [--mode {hvai,hvh,ava}] [--level 1..5] [--size {6,8,10}]
+     [--fullscreen | --windowed] [--scale FACTOR] [--sound | --no-sound]
+     [--data-dir PATH] [--reset-settings] [--verbose | --quiet]
+     [--list-themes] [--list-controls] [--version]
+```
 
-| Row | Option | Values |
-|---|---|---|
-| Mode | Game mode | Human vs AI · Human vs Human · AI vs AI |
-| AI Level | Difficulty | Easy · Medium · Hard · Expert |
-| Hints | Move indicators | On · Off |
-| Play as | Your colour | Black · White (HvAI only) |
+Examples:
 
-**New Game** button applies all changes and starts a fresh game.
-**Close** (or press **O** / **ESC**) returns without restarting.
-
-> Changing "Play as" always starts a new game automatically.
-
----
-
-## AI Difficulty
-
-| Level | Name | Description |
-|---|---|---|
-| 1 | Easy | Random legal move — good for beginners |
-| 2 | Medium | Instant heuristic: favours corners and edges, avoids X-squares |
-| 3 | Hard | Iterative-deepening minimax with alpha-beta, 1-second budget |
-| 4 | Expert | Same algorithm, 3-second budget; stronger end-game play |
-
-Hard and Expert use an opening book for the first few moves.
+```bash
+iago --list-themes
+iago --theme midnight --level 5
+iago --mode ava --level 4 --size 10
+iago --no-sound --data-dir ./profile
+```
 
 ---
 
-## Move Hints
+## Troubleshooting
 
-When hints are enabled (**H** to toggle):
+**The window does not open.**
+Check the log written to the data directory (see `iago --verbose`). On a headless
+machine set `SDL_VIDEODRIVER=dummy` — the game runs but draws nowhere.
 
-- **Gold star ★** with amber glow rings — the AI's top recommendation.
-- **Bright green dot** — other legal moves.
-- **Hover tint** — cells that would flip if you clicked the hovered square.
+**No sound.**
+Some minimal systems have no audio device; the game detects this and runs silently. Use
+**Options → Audio → Play test** to check.
 
-All indicators disappear when it is the AI's turn or when hints are turned off.
+**Text is missing or the game looks wrong.**
+Iago needs `pygame-ce` 2.5.4 or newer. With plain `pygame` 2.6.1 on Python 3.14 the font
+module fails to import — reinstall with `pip install --force-reinstall pygame-ce`.
 
----
+**Everything is too small.**
+Use **Options → Appearance → Interface scale**, or start with `--scale 1.25`.
 
-## Undo and Redo
+**I want a clean slate.**
+Delete the data directory (see the README), or start with `--reset-settings`.
 
-- **U** (or Undo button) steps back one move.  In Human-vs-AI mode this undoes both
-  the AI's response and your preceding move.
-- **Y** (or Redo button) reapplies the last undone move.
-- The undo/redo stack is cleared when a new game starts.
-
----
-
-## Save / Load / Replay
-
-Press **S** to save the current game to `saved_game.json`.
-
-Press **L** to load that file and enter **replay mode**:
-- The board resets to the opening position.
-- Press **Space** or **P** (or click the board area) to advance one move at a time.
-- The move counter in the history sidebar tracks your position.
-- Press **ESC** to exit replay at any time.
-
-The game is also auto-saved to `autosave.json` when you close the window.
-
----
-
-## Statistics
-
-Wins, losses, draws, and streaks are automatically saved to `stats.json` after each
-game and displayed in the win/loss streak line at the bottom of the UI panel.
-
----
-
-## Game Rules (quick reference)
-
-- The board starts with two Black and two White pieces in the centre.
-- Black always moves first.
-- A move is legal only if it captures at least one opponent piece.
-- Captured pieces (those between your new piece and another of yours in a straight line)
-  are flipped to your colour.
-- If a player has no legal move, their turn is skipped; if neither can move, the game ends.
-- The player with more pieces at the end wins.
+**A save file will not load.**
+The loader rejects any file whose moves are illegal; the error toast names the offending
+move. The file format is documented in [SAVE_FORMAT.md](SAVE_FORMAT.md).

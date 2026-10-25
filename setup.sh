@@ -1,84 +1,58 @@
 #!/bin/bash
+# One-shot development setup: virtual environment, editable install and
+# optional verification run.
+set -euo pipefail
 
-# Iago Deluxe Setup Script
-# This script sets up the Iago game and its dependencies
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-echo "🎮 Setting up Iago Deluxe..."
+PYTHON="${PYTHON:-python3}"
 
-# Check if Python 3 is installed
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 is required but not installed."
-    echo "Please install Python 3.7 or higher and try again."
+echo "Setting up Iago…"
+
+if ! command -v "$PYTHON" >/dev/null 2>&1; then
+    echo "Error: $PYTHON is not installed." >&2
     exit 1
 fi
 
-# Check Python version
-python_version=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-required_version="3.7"
-
-if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then
-    echo "❌ Python $python_version found, but Python $required_version or higher is required."
+VERSION="$("$PYTHON" -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+if ! "$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
+    echo "Error: Python 3.10 or newer is required (found $VERSION)." >&2
     exit 1
 fi
+echo "  Python $VERSION found"
 
-echo "✅ Python $python_version found"
-
-# Create virtual environment if it doesn't exist
-if [ ! -d ".venv" ]; then
-    echo "📦 Creating virtual environment..."
-    python3 -m venv .venv
-    if [ $? -ne 0 ]; then
-        echo "❌ Failed to create virtual environment"
-        echo "You may need to install python3-venv package"
-        exit 1
-    fi
-    echo "✅ Virtual environment created"
+if [ ! -x ".venv/bin/python" ] && [ ! -x ".venv/Scripts/python.exe" ]; then
+    echo "  Creating .venv"
+    "$PYTHON" -m venv .venv
 fi
 
-# Activate virtual environment and install dependencies
-echo "📦 Installing dependencies in virtual environment..."
-if .venv/bin/pip install -r requirements.txt; then
-    echo "✅ Dependencies installed successfully"
+if [ -x ".venv/bin/python" ]; then
+    VENV_PY=".venv/bin/python"
 else
-    echo "❌ Failed to install dependencies"
-    echo "Trying with --user flag..."
-    if pip3 install --user -r requirements.txt; then
-        echo "✅ Dependencies installed in user directory"
-    else
-        echo "❌ Installation failed. Please install pygame manually."
-        exit 1
-    fi
+    VENV_PY=".venv/Scripts/python.exe"
 fi
 
-# Check if pygame was installed correctly
-if .venv/bin/python3 -c "import pygame" 2>/dev/null || python3 -c "import pygame" 2>/dev/null; then
-    echo "✅ Pygame installed and working"
-else
-    echo "❌ Pygame installation failed"
-    exit 1
-fi
+echo "  Installing dependencies"
+"$VENV_PY" -m pip install --quiet --upgrade pip
+"$VENV_PY" -m pip install --quiet -e ".[dev]"
 
-# Make the main script executable
-chmod +x main.py
+echo "  Running the test suite"
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy "$VENV_PY" -m pytest -q
 
-echo ""
-echo "🎉 Setup complete!"
-echo ""
-echo "To play Iago Deluxe:"
-echo "  .venv/bin/python3 main.py    # Using virtual environment (recommended)"
-echo "  python3 main.py              # Using system Python"
-echo ""
-echo "Or create a launcher script:"
-echo "  echo '#!/bin/bash' > play.sh"
-echo "  echo 'cd \$(dirname \$0) && .venv/bin/python3 main.py \"\$@\"' >> play.sh"
-echo "  chmod +x play.sh"
-echo "  ./play.sh"
-echo ""
-echo "Controls:"
-echo "  V - Toggle move analysis"
-echo "  H - Toggle hints"
-echo "  A - Toggle AI"
-echo "  N - New game"
-echo "  Q - Quit"
-echo ""
-echo "Enjoy the game! 🎮"
+cat <<'MESSAGE'
+
+Setup complete.
+
+Play the game:
+  ./play.sh                       # launcher (recommended)
+  .venv/bin/python -m iago        # module entry point
+  .venv/bin/iago                  # installed console script
+
+Development:
+  .venv/bin/pytest -q             # tests
+  .venv/bin/black src tests       # format
+  .venv/bin/flake8 src tests      # lint
+  .venv/bin/mypy src/iago         # type-check
+  .venv/bin/pylint src/iago       # static analysis
+MESSAGE

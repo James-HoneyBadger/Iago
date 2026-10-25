@@ -95,18 +95,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    if args.data_dir:
+        os.environ[paths.ENV_OVERRIDE] = os.path.abspath(args.data_dir)
+
+    log_file = paths.log_path()
+    configure_logging(verbose=args.verbose, quiet=args.quiet, log_file=log_file)
+    if args.verbose:
+        print(f"{APP_NAME}: logging to {log_file}", file=sys.stderr)
+
     if args.list_themes:
         _print_themes()
         return 0
     if args.list_controls:
         _print_controls()
         return 0
-
-    if args.data_dir:
-        os.environ[paths.ENV_OVERRIDE] = os.path.abspath(args.data_dir)
-
-    log_file = paths.log_path()
-    configure_logging(verbose=args.verbose, quiet=args.quiet, log_file=log_file)
 
     options = LaunchOptions(
         theme=args.theme,

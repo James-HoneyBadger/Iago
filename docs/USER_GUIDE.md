@@ -133,7 +133,7 @@ Options, or press Undo to abandon the search.
 
 **Game**
 - Mode, difficulty, colour, board size (6×6 / 8×8 / 10×10) and clock.
-- Changing mode, colour or board size starts a new game.
+- Difficulty applies immediately; mode, colour, board size and clock start a new game.
 
 **Appearance**
 - Theme grid (Classic, Walnut, Ocean, Sunset, Forest, Midnight, High Contrast).

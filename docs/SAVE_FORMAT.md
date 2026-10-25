@@ -17,7 +17,7 @@ in the platform data directory (see the README); override with `--data-dir` or
 
 | File | Purpose | Written when |
 |---|---|---|
-| `settings.json` | preferences | any option change, window resize, quit |
+| `settings.json` | preferences | any option change, and on quit (window size included) |
 | `stats.json` | statistics and achievements | end of a Human-vs-AI game, quit |
 | `saved_game.json` | manual save | **S** / **Ctrl+S** |
 | `autosave.json` | crash-safe resume point | every 10 moves, game over, quit |

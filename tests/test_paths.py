@@ -21,7 +21,9 @@ def test_override_wins(monkeypatch, tmp_path):
 
 
 def test_override_expands_the_user_home(monkeypatch, tmp_path):
+    # ``os.path.expanduser`` reads HOME on POSIX and USERPROFILE on Windows.
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv(paths.ENV_OVERRIDE, "~/nested/profile")
     assert paths.data_dir() == tmp_path / "nested" / "profile" / DATA_DIR_NAME
 

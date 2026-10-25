@@ -172,6 +172,19 @@ the tests to prove the fast solver returns the same value on reduced endgames.
 Every line is **replayed against the rules at load time**; an illegal line is skipped with
 a warning rather than crashing the game. Book moves are used by Hard, Expert and Master.
 
+## Post-game analysis
+
+`iago.app.analysis.analyse_moves` replays the finished game and, for every ply, ranks all
+legal moves with `Searcher.rank` at `REVIEW_DEPTH = 4`. Each played move is scored by the
+*worst-case* loss in win probability (percentage points) against the engine's best move:
+`Best` ≤ 0.5, `Good` ≤ 2, `Inaccuracy` ≤ 5, `Mistake` ≤ 12, otherwise `Blunder`.
+Accuracy is `100 · exp(-mean_loss / 25)`.
+
+Depth 4 costs ≈ 2 s for a full 60-move game on a single CPU core and runs on a background
+thread, so the result panel appears immediately while the numbers fill in. Deeper reviews
+are available from the tests (`analyse_moves(..., depth=6)`); the trade-off is roughly
+quadrupling that time for a modest change in the labels.
+
 ---
 
 ## Difficulty presets

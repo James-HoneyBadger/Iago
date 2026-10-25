@@ -219,6 +219,23 @@ class SavedGame:
     def notation(self) -> List[str]:
         return [move_name(row, col) for _, row, col in self.moves]
 
+    def clock_elapsed(self) -> Dict[int, float]:
+        """Validated per-player elapsed seconds recorded with the save."""
+
+        raw = self.clocks.get("elapsed") if isinstance(self.clocks, dict) else None
+        elapsed: Dict[int, float] = {}
+        if not isinstance(raw, dict):
+            return elapsed
+        for key, value in raw.items():
+            try:
+                player = int(key)
+                seconds = float(value)
+            except (TypeError, ValueError):
+                continue
+            if player in (PLAYER_BLACK, PLAYER_WHITE) and seconds >= 0:
+                elapsed[player] = seconds
+        return elapsed
+
 
 def build_save_payload(
     *,

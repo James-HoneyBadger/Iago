@@ -20,6 +20,7 @@ from ..core.constants import (
     MODE_HVAI,
     MODES,
     PLAYER_BLACK,
+    PLAYER_WHITE,
     SUPPORTED_BOARD_SIZES,
 )
 from ..core.notation import identify_opening
@@ -40,6 +41,7 @@ from .settings import GameSettings
 logger = get_logger("app.game")
 
 AUTOSAVE_EVERY = 10
+REVIEW_DEPTH = 4
 AVA_DELAYS = (0.05, 0.18, 0.45, 0.9)
 
 
@@ -55,6 +57,7 @@ class LaunchOptions:
     windowed: bool = False
     ui_scale: Optional[float] = None
     sound: Optional[bool] = None
+    seed: Optional[int] = None
     reset_settings: bool = False
 
 
@@ -85,10 +88,15 @@ class Game:
 
         self.sound = SoundBank(self.settings.sound_enabled, self.settings.sound_volume)
         self.stats = persistence.load_stats()
+        seed = self.options.seed
         self.engine = Engine(
-            self.settings.ai_level, self.settings.board_size, seed=None
+            self.settings.ai_level, self.settings.board_size, seed=seed
         )
-        self.engine2 = Engine(self.settings.ai_level, self.settings.board_size, seed=7)
+        self.engine2 = Engine(
+            self.settings.ai_level,
+            self.settings.board_size,
+            seed=None if seed is None else seed + 1,
+        )
         self.worker = SearchWorker()
         self.hint_worker = SearchWorker()
         self.review_worker = ReviewWorker()
@@ -101,6 +109,7 @@ class Game:
         )
         self._apply_clock_settings()
         self.session.clock.start(self.session.current_player, time.monotonic())
+        self._update_caption()
 
         self.overlay: Optional[str] = None
         self.overlay_data: Any = None
@@ -125,6 +134,9 @@ class Game:
         self.fps = 0.0
         self._last_autosave = 0
         self._last_ava_move = 0.0
+        self._search_key: Optional[Tuple[int, int]] = None
+        self._review_cache: Optional[Tuple[Tuple[int, int, int], Any]] = None
+        self._hint_key: Optional[Tuple[int, int]] = None
         self._mouse: Optional[Tuple[int, int]] = None
         self._pressed_button: Optional[str] = None
         self._clock = pg.time.Clock()
@@ -250,11 +262,15 @@ class Game:
     def _build_model(self) -> RenderModel:
         display_board = None
         if self.selected_ply is not None:
-            display_board = self.session.position_at(self.selected_ply)
+            key = (self.selected_ply, self.session.revision, self.session.size)
+            if self._review_cache is None or self._review_cache[0] != key:
+                self._review_cache = (key, self.session.position_at(self.selected_ply))
+            display_board = self._review_cache[1]
         session = self.session
         thinking_text = ""
         if self.thinking is not None:
-            thinking_text = "Thinking…"
+            dots = "." * (1 + int(time.monotonic() * 2) % 3)
+            thinking_text = f"Thinking{dots}"
         hint_text = ""
         if self.pending_hint is not None:
             hint_text = f"Hint: {self._notation(self.pending_hint)}"
@@ -499,6 +515,7 @@ class Game:
         limits = self._limits_for(engine)
         self.thinking = None
         self.ai_started_at = time.monotonic()
+        self._search_key = self._position_key()
         self.worker.start(engine, self.session.board, limits)
 
     def _poll_search(self) -> None:
@@ -509,6 +526,13 @@ class Game:
             return
         self.worker.take_result()
         self.thinking = None
+        if final.index is None and final.depth == 0 and final.nodes == 0:
+            return
+        if self._search_key != self._position_key():
+            # The board changed while the engine was thinking (new game, undo,
+            # resize, load); the answer is no longer about this position.
+            logger.debug("Discarding a search result for a stale position")
+            return
         if self.session.game_over:
             return
         player = self.session.current_player
@@ -547,6 +571,8 @@ class Game:
         if final is None:
             return
         self.hint_worker.take_result()
+        if self._hint_key != self._position_key():
+            return
         if final.move is not None:
             self.pending_hint = final.move
         if progress is not None and final.move is None:
@@ -586,7 +612,9 @@ class Game:
             self._record_stats()
         duration = self.session.elapsed()
         self.review = None
-        self.review_worker.start(self.session.to_move_log(), self.session.size, depth=2)
+        self.review_worker.start(
+            self.session.to_move_log(), self.session.size, depth=REVIEW_DEPTH
+        )
         self.renderer.celebrate(self.session.winner)
         winner_text = (
             "Draw"
@@ -659,12 +687,7 @@ class Game:
             blitz_base=self.settings.blitz_minutes * 60.0,
             increment=float(self.settings.blitz_increment),
         )
-        self.engine.resize(self.session.size)
-        self.engine2.resize(self.session.size)
-        self.engine.difficulty = self.settings.ai_level
-        self.engine2.difficulty = self.settings.ai_level
-        self.engine.reset_log()
-        self.engine2.reset_log()
+        self._configure_engines(self.session.size, self.settings.ai_level)
         self._apply_clock_settings()
         self.session.clock.start(self.session.current_player, time.monotonic())
         self._refresh_auto_hint()
@@ -681,6 +704,8 @@ class Game:
         self.replay_active = False
         self.game_over_reason = "board"
         self.message = ""
+        self._invalidate_review()
+        self._update_caption()
         self.sound.play("ui")
         self._maybe_start_ai()
 
@@ -699,6 +724,7 @@ class Game:
             self.session.undo()
         self._sync_engine_logs()
         self._sync_scores()
+        self._invalidate_review()
         self.thinking = None
         self.pending_hint = None
         self.overlay = None
@@ -737,6 +763,7 @@ class Game:
         if self.hint_worker.busy:
             self.hint_worker.cancel()
         limits = SearchLimits(time_limit=0.6, max_depth=12, endgame_empties=10)
+        self._hint_key = self._position_key()
         self.hint_worker.start(self.engine, self.session.board, limits)
         self.sound.play("ui")
 
@@ -744,7 +771,9 @@ class Game:
         if not self.session.move_count:
             return
         self.review = None
-        self.review_worker.start(self.session.to_move_log(), self.session.size, depth=2)
+        self.review_worker.start(
+            self.session.to_move_log(), self.session.size, depth=REVIEW_DEPTH
+        )
         self._show_game_over()
 
     def _toggle_hints(self) -> None:
@@ -766,6 +795,7 @@ class Game:
         self.engine.reset_log()
         self._sync_engine_logs()
         self._save_settings()
+        self._update_caption()
         self.renderer.notify(f"Difficulty: {get_level(level).name}", self.theme.accent)
         self.sound.play("ui")
 
@@ -822,6 +852,7 @@ class Game:
         self.settings.theme = key
         self.theme = get_theme(key)
         self.renderer.set_theme(self.theme)
+        self._update_caption()
         self._save_settings()
         self.renderer.notify(f"Theme: {self.theme.name}", self.theme.accent)
         self.sound.play("ui")
@@ -848,9 +879,13 @@ class Game:
 
     def _set_slider(self, kind: str, value: Optional[float] = None) -> None:
         if kind == "volume":
+            if value is not None:
+                self.settings.sound_volume = float(value)
             self.settings.sound_volume = max(0.0, min(1.0, self.settings.sound_volume))
             self.sound.set_volume(self.settings.sound_volume)
         else:
+            if value is not None:
+                self.settings.ui_scale = float(value)
             self.settings.ui_scale = max(0.75, min(1.5, self.settings.ui_scale))
             self.renderer.set_ui_scale(self.settings.ui_scale)
         self._save_settings()
@@ -1052,12 +1087,23 @@ class Game:
         self._apply_saved_game(saved)
         self.renderer.notify(f"Loaded {saved.move_count} moves", self.theme.good)
 
+    def _configure_engines(self, size: int, level: int) -> None:
+        """Point both engines at *size*/*level* and clear their move logs."""
+
+        self.engine.resize(size)
+        self.engine2.resize(size)
+        self.engine.difficulty = level
+        self.engine2.difficulty = level
+        self.engine.reset_log()
+        self.engine2.reset_log()
+
     def _apply_saved_game(self, saved: persistence.SavedGame) -> None:
         self.settings.mode = saved.mode
         self.settings.board_size = saved.board_size
         self.settings.player_color = saved.player_color
         self.settings.ai_level = saved.level
         self.renderer.set_board_size(saved.board_size)
+        self._configure_engines(saved.board_size, saved.level)
         self.session = Session(
             size=saved.board_size,
             mode=saved.mode,
@@ -1066,7 +1112,14 @@ class Game:
         )
         self._apply_clock_settings()
         self.session.load_move_log(saved.moves)
+        restored = saved.clock_elapsed()
+        if restored:
+            self.session.clock.elapsed = {
+                PLAYER_BLACK: restored.get(PLAYER_BLACK, 0.0),
+                PLAYER_WHITE: restored.get(PLAYER_WHITE, 0.0),
+            }
         self._sync_engine_logs()
+        self._review_cache = None
         self.overlay = None
         self.overlay_data = None
         self.thinking = None
@@ -1153,6 +1206,21 @@ class Game:
         self.renderer.notify(text, self.theme.bad)
         self.sound.play("invalid")
         logger.warning(text)
+
+    def _position_key(self) -> Tuple[int, int]:
+        """Fingerprint of the current position, used to reject stale results."""
+
+        position = self.session.board.to_position()
+        return position.size, position.zobrist
+
+    def _update_caption(self) -> None:
+        state = f"{MODE_LABELS_FALLBACK.get(self.session.mode, self.session.mode)}"
+        level = f" · {get_level(self.session.level).name}"
+        theme = f" · {self.theme.name}"
+        pg.display.set_caption(f"{APP_NAME} {VERSION} — {state}{level}{theme}")
+
+    def _invalidate_review(self) -> None:
+        self._review_cache = None
 
     def _now(self) -> float:
         return pg.time.get_ticks() / 1000.0

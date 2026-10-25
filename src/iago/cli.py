@@ -57,7 +57,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scale", type=float, help="interface scale, 0.75 to 1.5")
     parser.add_argument("--sound", dest="sound", action="store_true", default=None)
     parser.add_argument("--no-sound", dest="sound", action="store_false")
-    parser.add_argument("--data-dir", help="override the user data directory")
+    parser.add_argument(
+        "--seed", type=int, help="seed the engines for reproducible play"
+    )
+    parser.add_argument(
+        "--data-dir", help="override the base data directory (files land in PATH/iago)"
+    )
     parser.add_argument(
         "--reset-settings", action="store_true", help="ignore saved settings"
     )
@@ -119,6 +124,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         windowed=args.windowed,
         ui_scale=args.scale,
         sound=args.sound,
+        seed=args.seed,
         reset_settings=args.reset_settings,
     )
 

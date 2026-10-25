@@ -252,7 +252,7 @@ Legacy files are migrated on first read (see [SAVE_FORMAT.md](SAVE_FORMAT.md)).
 
 ## Testing strategy
 
-330 tests, all headless (`SDL_VIDEODRIVER=dummy`), run in ~15 s.
+399 tests, all headless (`SDL_VIDEODRIVER=dummy`), run in ~25 s and cover 90% of statements.
 
 | Area | Approach |
 |---|---|

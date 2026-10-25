@@ -255,6 +255,16 @@ def test_worker_reports_progress():
     assert saw_progress
 
 
+def test_worker_cancel_discards_pending_results():
+    worker = SearchWorker()
+    engine = Engine(difficulty=3)
+    worker.start(engine, Position(), SearchLimits(time_limit=0.1, max_depth=3))
+    worker.join(5.0)
+    assert worker.poll()[1] is not None
+    worker.cancel()
+    assert worker.poll() == (None, None)
+
+
 def test_worker_take_result_clears_it():
     worker = SearchWorker()
     engine = Engine(difficulty=3)

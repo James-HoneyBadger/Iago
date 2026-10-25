@@ -10,7 +10,7 @@ from iago.app import paths, persistence
 from iago.app.persistence import SavedGame
 from iago.app.settings import GameSettings, GameStats
 from iago.core.board import Board
-from iago.core.constants import PLAYER_BLACK
+from iago.core.constants import PLAYER_BLACK, PLAYER_WHITE
 from iago.util.errors import SaveFileError
 
 
@@ -255,3 +255,20 @@ def test_autosave_lifecycle(data_dir):
     assert found is not None and found.exists()
     persistence.delete_autosave()
     assert persistence.find_autosave() is None
+
+
+def test_clock_elapsed_parses_and_filters_entries():
+    saved = SavedGame(
+        moves=MOVES,
+        clocks={
+            "mode": "blitz",
+            "elapsed": {"1": 12.0, "2": "9.5", "3": 4.0, "x": 1.0, "1.5": 2.0},
+        },
+    )
+    assert saved.clock_elapsed() == {PLAYER_BLACK: 12.0, PLAYER_WHITE: 9.5}
+
+
+def test_clock_elapsed_rejects_bad_payloads():
+    assert SavedGame(moves=MOVES, clocks={}).clock_elapsed() == {}
+    assert SavedGame(moves=MOVES, clocks={"elapsed": [1, 2]}).clock_elapsed() == {}
+    assert SavedGame(moves=MOVES, clocks={"elapsed": {"1": -5.0}}).clock_elapsed() == {}

@@ -60,9 +60,12 @@ three game modes are unchanged, and Iago 3.0 save files still load.
 - Installable package (`src/iago/`) with `pyproject.toml`, console script `iago` and
   `python -m iago`.
 - Command-line interface with theme, mode, level, size, scale, fullscreen, sound,
-  data-directory and diagnostic options.
-- 330 headless tests, including perft validation, bitboard/reference fuzzing,
-  brute-force endgame cross-checks, persistence migrations and scripted controller games.
+  `--seed` for reproducible engine play, data-directory and diagnostic options.
+- Window title that follows the mode, difficulty and theme; animated “thinking” indicator.
+- Post-game review at depth 4, with the reviewed position cached per ply.
+- 399 headless tests (90% statement coverage), including perft validation,
+  bitboard/reference fuzzing, brute-force endgame cross-checks, persistence migrations,
+  CLI and path-resolution coverage and scripted controller games.
 - CI on Linux, macOS and Windows across Python 3.10–3.14 with black, flake8, mypy, pylint,
   coverage and wheel-build checks.
 - Documentation: user guide, architecture, AI design, development guide, save format,
@@ -79,6 +82,11 @@ three game modes are unchanged, and Iago 3.0 save files still load.
 
 ### Fixed
 - The window no longer freezes while the engine thinks.
+- Loading a save from a different board size reconfigures the engines instead of raising
+  `IndexError` on the next search.
+- A search that finishes after the position changed is discarded instead of producing an
+  “illegal move” error.
+- Clock times recorded in a save are restored when the game is loaded.
 - Sound effects played for 25 ms instead of their intended 100 ms (8-bit mono buffers were
   handed to a 16-bit stereo mixer).
 - The win-probability labels no longer overlap the turn banner, and the hotkey column is

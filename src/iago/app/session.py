@@ -158,6 +158,7 @@ class Session:
         self.lowest_probability = 0.5
         self.pass_happened = False
         self.opening_name: Optional[str] = None
+        self.revision = 0
 
     # ------------------------------------------------------------------
     # Configuration
@@ -249,6 +250,7 @@ class Session:
         self.finished_at = None
         self.pass_happened = False
         self.opening_name = None
+        self.revision += 1
 
     # ------------------------------------------------------------------
     # Playing
@@ -291,6 +293,7 @@ class Session:
         )
         self.records.append(record)
         self._snapshots.append(snapshot)
+        self.revision += 1
         self.redo_records.clear()
         self._redo_snapshots.clear()
         self.last_move = (row, col)
@@ -395,6 +398,7 @@ class Session:
         self.clock.restore(snapshot.clock_elapsed)
         self.clock.moves = dict(snapshot.clock_moves)
         self.finished_at = snapshot.finished_at
+        self.revision += 1
         self.pass_happened = False
 
     # ------------------------------------------------------------------

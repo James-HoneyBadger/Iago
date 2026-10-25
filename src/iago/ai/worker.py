@@ -117,6 +117,8 @@ class SearchWorker:
             self._running = False
             self._token += 1
             self._thread = None
+            self._result = None
+            self._progress = None
 
         if engine is not None:
             engine.cancel_search()

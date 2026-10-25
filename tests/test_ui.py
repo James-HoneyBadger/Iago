@@ -18,11 +18,37 @@ from iago.ui.animation import (
     ease_out_quad,
 )
 from iago.ui.assets import DiscCache, FontBook, mix, shade
-from iago.ui.drawing import draw_bar, draw_panel, draw_star, gradient
+from iago.ui.drawing import (
+    draw_bar,
+    draw_bevel,
+    draw_checker,
+    draw_glow,
+    draw_label_value,
+    draw_panel,
+    draw_ring,
+    draw_separator,
+    draw_shadow,
+    draw_star,
+    fit_text,
+    gradient,
+    with_alpha,
+    wrap_text,
+)
 from iago.ui.hud import format_clock
 from iago.ui.layout import Rect, clamp_window, compute_layout
 from iago.ui.theme import THEMES, THEME_ORDER, get_theme, next_theme
-from iago.ui.widgets import Button, draw_segmented, draw_toggle
+from iago.ui.widgets import (
+    Button,
+    draw_badge,
+    draw_keycap,
+    draw_scrollbar,
+    draw_segmented,
+    draw_slider,
+    draw_tabs,
+    draw_toggle,
+    draw_tooltip,
+    focus_ring,
+)
 
 # ---------------------------------------------------------------------------
 # Rect and layout
@@ -335,3 +361,136 @@ def test_format_clock():
     assert format_clock(0) == "00:00"
     assert format_clock(65) == "01:05"
     assert format_clock(3725) == "1:02:05"
+
+
+# ---------------------------------------------------------------------------
+# Widget details
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("kind", ["secondary", "primary", "danger", "ghost"])
+def test_button_kinds_have_distinct_colours(kind):
+    theme = get_theme("classic")
+    button = Button("k", "Go", Rect(0, 0, 80, 30), kind=kind)
+    fill, border, text = button.colors(theme)
+    assert all(isinstance(channel, int) for channel in (*fill, *border, *text))
+
+
+def test_button_draw_with_states():
+    surface = pg.Surface((120, 40))
+    theme = get_theme("classic")
+    fonts = FontBook()
+    button = Button("k", "Play", Rect(0, 0, 120, 40), kind="primary", active=True)
+    button.draw(surface, fonts, theme, hovered=True, pressed=True, focused=True)
+    assert surface.get_at((60, 20))[:3] != (0, 0, 0)
+    button.enabled = False
+    button.draw(surface, fonts, theme)
+
+
+def test_focus_ring_draws_around_the_rect():
+    surface = pg.Surface((80, 60))
+    focus_ring(surface, Rect(10, 10, 40, 30), get_theme("classic"))
+    assert surface.get_at((30, 8))[:3] != (0, 0, 0)
+
+
+def test_slider_positions_the_knob():
+    surface = pg.Surface((220, 40))
+    theme = get_theme("classic")
+    low = draw_slider(surface, theme, Rect(0, 0, 200, 30), 0.0)
+    high = draw_slider(surface, theme, Rect(0, 0, 200, 30), 1.0)
+    assert high.x > low.x
+    assert low.x == 0 and high.right <= 200
+    draw_slider(surface, theme, Rect(0, 0, 200, 30), 0.5, enabled=False)
+
+
+def test_tabs_and_badges_return_rects():
+    surface = pg.Surface((400, 120))
+    theme = get_theme("classic")
+    fonts = FontBook()
+    tabs = draw_tabs(surface, fonts, theme, Rect(0, 0, 400, 26), ["One", "Two"], 1)
+    assert len(tabs) == 2 and tabs[1].x > tabs[0].x
+    for anchor in ("topleft", "center", "topright", "midright"):
+        rect = draw_badge(surface, fonts, theme, (200, 60), "12", theme.accent, anchor)
+        assert rect.w > 0 and rect.h > 0
+
+
+def test_tooltip_is_clamped_inside_bounds():
+    surface = pg.Surface((200, 120))
+    theme = get_theme("classic")
+    fonts = FontBook()
+    bounds = Rect(0, 0, 200, 120)
+    draw_tooltip(surface, fonts, theme, "hint text", (195, 118), bounds)
+    draw_tooltip(surface, fonts, theme, "", (10, 10), bounds)  # empty is a no-op
+
+
+def test_keycap_reports_its_width():
+    surface = pg.Surface((120, 40))
+    theme = get_theme("classic")
+    fonts = FontBook()
+    narrow = draw_keycap(surface, fonts, theme, (0, 20), "A")
+    wide = draw_keycap(surface, fonts, theme, (40, 20), "Ctrl+S")
+    assert wide > narrow
+
+
+def test_scrollbar_skips_short_content():
+    surface = pg.Surface((20, 200))
+    theme = get_theme("classic")
+    track = Rect(0, 0, 10, 100)
+    draw_scrollbar(surface, theme, track, 0, 100, 100)
+    assert surface.get_at((5, 50))[:3] == (0, 0, 0)
+    draw_scrollbar(surface, theme, track, 120, 400, 100)
+    assert surface.get_at((5, 50))[:3] != (0, 0, 0)
+
+
+def test_segmented_handles_no_options():
+    surface = pg.Surface((100, 40))
+    assert (
+        draw_segmented(
+            surface, FontBook(), get_theme("classic"), Rect(0, 0, 90, 24), [], 0
+        )
+        == []
+    )
+
+
+# ---------------------------------------------------------------------------
+# Drawing helpers
+# ---------------------------------------------------------------------------
+
+
+def test_with_alpha_adds_a_channel():
+    assert with_alpha((1, 2, 3), 128) == (1, 2, 3, 128)
+    assert with_alpha((1, 2, 3, 4), 9) == (1, 2, 3, 9)
+
+
+def test_panel_shadow_separator_and_bevel():
+    surface = pg.Surface((160, 120))
+    theme = get_theme("classic")
+    draw_shadow(surface, Rect(10, 10, 80, 40), radius=6)
+    draw_panel(surface, Rect(10, 60, 80, 40), theme)
+    draw_separator(surface, (10, 116), (150, 116), theme)
+    draw_bevel(surface, Rect(60, 10, 60, 40), theme)
+    draw_ring(surface, (40, 40), 10, theme.accent, 2)
+    draw_checker(
+        surface, Rect(20, 20, 60, 60), 10, theme.board_light, theme.board_dark, 6
+    )
+    draw_glow(surface, (80, 80), 20, theme.accent)
+    width = draw_label_value(surface, FontBook(), "Depth", "8", (10, 20), theme)
+    assert width > 0
+    assert surface.get_at((15, 70))[:3] != (0, 0, 0)
+
+
+def test_fit_text_shortens_long_labels():
+    fonts = FontBook()
+    short = fit_text(fonts, "abc", "body", 400)
+    narrow = fit_text(fonts, "a very long label indeed", "body", 40)
+    assert short == "abc"
+    assert narrow != "a very long label indeed"
+    assert len(narrow) < len("a very long label indeed")
+
+
+def test_wrap_text_breaks_on_words():
+    fonts = FontBook()
+    lines = wrap_text(fonts, "the quick brown fox jumps", "body", 80)
+    assert len(lines) > 1
+    assert all(" " not in line.strip() or len(line) < 80 for line in lines)
+    assert wrap_text(fonts, "", "body", 80) == []

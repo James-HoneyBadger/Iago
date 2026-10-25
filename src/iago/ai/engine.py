@@ -85,6 +85,19 @@ class Engine:
         self._book = OpeningBook.load(size=size)
         self._log.clear()
 
+    def _position_for(self, board: BoardLike) -> Position:
+        """Convert a board-like object and keep the engine's tables in sync.
+
+        Loading a save (or switching board size) can hand the engine a position
+        whose geometry differs from the one it was built for; resizing here makes
+        that impossible to get wrong at the call sites.
+        """
+
+        position = _as_position(board)
+        if position.size != self.size:
+            self.resize(position.size)
+        return position
+
     # ------------------------------------------------------------------
     # Move history (used by the opening book)
     # ------------------------------------------------------------------
@@ -107,7 +120,7 @@ class Engine:
     def get_move(self, board: BoardLike) -> Optional[Tuple[int, int]]:
         """Return the engine's chosen move for the side to move."""
 
-        position = _as_position(board)
+        position = self._position_for(board)
         moves = position.legal_move_list()
         if not moves:
             return None
@@ -127,7 +140,7 @@ class Engine:
     def quick_hint(self, board: BoardLike) -> Optional[Tuple[int, int]]:
         """Cheap one-ply suggestion, safe to call after every move."""
 
-        position = _as_position(board)
+        position = self._position_for(board)
         if not position.legal_moves():
             return None
         ranked = self._hint_searcher.rank(position, depth=1)
@@ -140,7 +153,7 @@ class Engine:
     ) -> Optional[Tuple[int, int]]:
         """Return a strong move suggestion without changing engine state."""
 
-        position = _as_position(board)
+        position = self._position_for(board)
         if not position.legal_moves():
             return None
         limits = SearchLimits(
@@ -160,7 +173,7 @@ class Engine:
     ) -> SearchResult:
         """Run an arbitrary analysis search (used by hints and game review)."""
 
-        position = _as_position(board)
+        position = self._position_for(board)
         limits = SearchLimits(
             time_limit=time_limit,
             max_depth=max_depth,
@@ -176,7 +189,9 @@ class Engine:
     ) -> SearchResult:
         """Run a search with explicit limits on the main search engine."""
 
-        return self._searcher.search(_as_position(board), limits, progress=progress)
+        return self._searcher.search(
+            self._position_for(board), limits, progress=progress
+        )
 
     def cancel_search(self) -> None:
         """Ask the main search engine to stop as soon as possible."""
@@ -184,7 +199,7 @@ class Engine:
         self._searcher.cancel()
 
     def book_move(self, board: BoardLike) -> Optional[Tuple[int, int]]:
-        position = _as_position(board)
+        position = self._position_for(board)
         move = self._book.lookup(self._log)
         if move is not None and move in position.legal_move_list():
             return move
@@ -200,13 +215,13 @@ class Engine:
     def evaluate(self, board: BoardLike) -> int:
         """Static score from the side to move's perspective."""
 
-        return evaluate(_as_position(board))
+        return evaluate(self._position_for(board))
 
     def evaluate_for_black(self, board: BoardLike) -> int:
-        return evaluate_for_black(_as_position(board))
+        return evaluate_for_black(self._position_for(board))
 
     def win_probability(self, board: BoardLike) -> float:
-        return win_probability(_as_position(board))
+        return win_probability(self._position_for(board))
 
     # ------------------------------------------------------------------
 

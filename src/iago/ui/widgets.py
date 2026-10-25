@@ -209,8 +209,9 @@ def draw_slider(
             (track.x, track.y, filled_w, track.h),
             border_radius=3,
         )
-    knob_x = track.x + filled_w
     knob_radius = max(6, rect.h // 2 - 4)
+    knob_x = track.x + filled_w
+    knob_x = max(rect.x + knob_radius, min(track.right - knob_radius, knob_x))
     pg.draw.circle(
         surface,
         theme.text if enabled else theme.text_dim,

@@ -42,7 +42,7 @@ Pre-commit hooks (black, flake8, mypy and a few hygiene checks) are configured i
 
 | Command | Purpose |
 |---|---|
-| `pytest -q` | the whole suite (330 tests, ~15 s, headless) |
+| `pytest -q` | the whole suite (399 tests, ~25 s, headless) |
 | `pytest tests/test_search.py -q` | one module |
 | `pytest --cov --cov-report=term-missing` | coverage |
 | `black src tests scripts main.py` | format |

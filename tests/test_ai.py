@@ -115,6 +115,23 @@ def test_engine_rejects_unknown_board_types():
         Engine().get_move("nope")  # type: ignore[arg-type]
 
 
+def test_engine_resizes_for_a_position_of_another_size():
+    """A 10x10 position must not crash an engine built for 8x8."""
+
+    engine = Engine(difficulty=1, seed=4)
+    assert engine.size == 8
+    move = engine.get_move(Position(10))
+    assert engine.size == 10
+    assert move in Position(10).legal_move_list()
+
+
+def test_engine_quick_hint_survives_a_size_change():
+    engine = Engine(difficulty=2)
+    hint = engine.quick_hint(Position(6))
+    assert engine.size == 6
+    assert hint in Position(6).legal_move_list()
+
+
 def test_resize_switches_board_size():
     engine = Engine(difficulty=2)
     engine.resize(10)

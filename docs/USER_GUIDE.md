@@ -244,7 +244,7 @@ Press **F1** in game for this list.
 ```
 iago [--theme KEY] [--mode {hvai,hvh,ava}] [--level 1..5] [--size {6,8,10}]
      [--fullscreen | --windowed] [--scale FACTOR] [--sound | --no-sound]
-     [--data-dir PATH] [--reset-settings] [--verbose | --quiet]
+     [--seed N] [--data-dir PATH] [--reset-settings] [--verbose | --quiet]
      [--list-themes] [--list-controls] [--version]
 ```
 
@@ -254,7 +254,8 @@ Examples:
 iago --list-themes
 iago --theme midnight --level 5
 iago --mode ava --level 4 --size 10
-iago --no-sound --data-dir ./profile
+iago --no-sound --data-dir ./profile   # settings live in ./profile/iago
+iago --mode ava --seed 1234      # replayable engine play
 ```
 
 ---

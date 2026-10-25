@@ -2,7 +2,8 @@
 
 The application never writes next to its source: settings, statistics, saves
 and logs live in the platform's user-data directory.  ``IAGO_DATA_DIR``
-overrides everything, which is what the tests use.
+overrides the base of that directory (``<base>/iago``), which is what the tests
+use.
 """
 
 from __future__ import annotations

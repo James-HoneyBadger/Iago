@@ -128,6 +128,7 @@ In AI vs AI: **P** pauses, **+**/**-** change the speed.
 | 5 | **Master** | 5 s, deeper endgame solves | 5–1 vs Expert |
 
 Reproduce with `python scripts/selfplay.py --a 5 --b 4 --games 6 --time-scale 0.15`.
+Add `--seed N` to the game to make two runs play out identically.
 
 ---
 
@@ -165,7 +166,8 @@ All themes: `./play.sh --list-themes`.
 | macOS | `~/Library/Application Support/iago/` |
 | Windows | `%APPDATA%\iago\` |
 
-Override with `--data-dir PATH` or the `IAGO_DATA_DIR` environment variable. Files:
+Override the base directory with `--data-dir PATH` or `IAGO_DATA_DIR`; files land in
+`PATH/iago/`. Contents:
 `settings.json`, `stats.json`, `autosave.json`, `saved_game.json` and `iago.log`.
 See [docs/SAVE_FORMAT.md](docs/SAVE_FORMAT.md) for the schemas.
 
@@ -183,7 +185,7 @@ Iago_Deluxe/
 │   ├── util/        # logging and the exception hierarchy
 │   ├── branding.py  # app name, version, tagline
 │   └── cli.py       # argument parsing and entry point
-├── tests/           # 330 tests, all headless
+├── tests/           # 399 tests, all headless
 ├── scripts/         # benchmark, self-play, book builder, screenshot generator
 └── docs/            # user guide, architecture, AI design, save format, changelog
 ```
@@ -192,7 +194,7 @@ Iago_Deluxe/
 
 ```bash
 ./setup.sh                    # venv + editable install + test run
-.venv/bin/pytest -q           # 330 tests
+.venv/bin/pytest -q           # 399 tests
 .venv/bin/black src tests     # formatting
 .venv/bin/flake8 src tests    # lint
 .venv/bin/mypy src/iago       # types

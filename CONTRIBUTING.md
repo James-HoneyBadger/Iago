@@ -6,8 +6,8 @@ the conventions the codebase uses.
 ## Getting set up
 
 ```bash
-git clone https://github.com/James-HoneyBadger/Iago_Deluxe.git
-cd Iago_Deluxe
+git clone https://github.com/James-HoneyBadger/Iago.git
+cd Iago
 ./setup.sh                       # venv + editable install + tests
 .venv/bin/pip install pre-commit && .venv/bin/pre-commit install
 ```

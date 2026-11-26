@@ -7,7 +7,7 @@ interface with a responsive layout, and a full record of everything you play.
 ![Iago — Classic theme](docs/images/board-classic.png)
 
 <p align="center">
-  <a href="https://github.com/James-HoneyBadger/Iago_Deluxe/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/James-HoneyBadger/Iago_Deluxe/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/James-HoneyBadger/Iago/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/James-HoneyBadger/Iago/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%20%E2%80%933.14-blue">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
   <img alt="Version" src="https://img.shields.io/badge/version-4.0.0-orange">
@@ -58,8 +58,8 @@ interface with a responsive layout, and a full record of everything you play.
 ## Quick start
 
 ```bash
-git clone https://github.com/James-HoneyBadger/Iago_Deluxe.git
-cd Iago_Deluxe
+git clone https://github.com/James-HoneyBadger/Iago.git
+cd Iago
 ./play.sh
 ```
 
